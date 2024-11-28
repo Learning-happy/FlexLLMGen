@@ -3,6 +3,7 @@ Usage:
 python3 -m flexllmgen.flex_opt --model facebook/opt-1.3b --gpu-batch-size 32 --percent 100 0 100 0 100 0
 """
 
+import json
 import argparse
 import dataclasses
 import os
@@ -1169,22 +1170,34 @@ def get_filename(args):
     return filename
 
 
-def get_test_inputs(prompt_len, num_prompts, tokenizer):
-    prompts = ["Paris is the capital city of"]
+# def get_test_inputs(prompt_len, num_prompts, tokenizer):
+#     prompts = ["Paris is the capital city of"]
+#     input_ids = tokenizer(prompts, padding="max_length",
+#                           max_length=prompt_len).input_ids
+#     return (input_ids[0],) * num_prompts
+def get_test_inputs(prompt_len, tokenizer):
+    prompts = []
+    with open('sessions.json', 'r', encoding='utf-8') as file:
+        sessions = json.load(file)
+    for session in sessions:
+        queries = session['queries']
+        for query in queries:
+            prompts.append(query['query'])
     input_ids = tokenizer(prompts, padding="max_length",
                           max_length=prompt_len).input_ids
-    return (input_ids[0],) * num_prompts
+    return input_ids
+
 
 
 def run_flexllmgen(args):
     print(f"<run_flexllmgen>: args.model: {args.model}")
     tokenizer = AutoTokenizer.from_pretrained("facebook/opt-30b", padding_side="left")
+    # num_prompts = 1
     num_prompts = args.num_gpu_batches * args.gpu_batch_size
     prompt_len, gen_len, cut_gen_len = args.prompt_len, args.gen_len, args.cut_gen_len
 
     # Task and policy
-    warmup_inputs = get_test_inputs(32, num_prompts, tokenizer)
-    inputs = get_test_inputs(prompt_len, num_prompts, tokenizer)
+    inputs = get_test_inputs(prompt_len, tokenizer)
 
     gpu = TorchDevice("cuda:0")
     cpu = TorchDevice("cpu")
@@ -1216,10 +1229,6 @@ def run_flexllmgen(args):
     model = OptLM(opt_config, env, args.path, policy)
 
     try:
-        print("warmup - generate")
-        output_ids = model.generate(
-            warmup_inputs, max_new_tokens=1, verbose=args.verbose)
-
         print("benchmark - generate")
         timers("generate").reset()
         output_ids = model.generate(
@@ -1246,7 +1255,7 @@ def run_flexllmgen(args):
     if DUMMY_WEIGHT not in args.path:
         outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
         show_str = "Outputs:\n" + 70 * '-' + "\n"
-        for i in [0, len(outputs)-1]:
+        for i in range(len(outputs)):
             show_str += f"{i}: {outputs[i]}\n"
             show_str += "-" * 70 + "\n"
         if args.verbose >= 2:

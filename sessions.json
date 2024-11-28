@@ -1,17 +1,19 @@
-{
-    "subject": "food",
-    "conversations": [
-        {
-            "from": "human",
-            "value": "Please tell me some delicious Beijing food."
-        },
-        {
-            "from": "human",
-            "value": "Then I like Beijing roast duck. Do you know how to cook it?"
-        },
-        {
-            "from": "human",
-            "value": "If I get cold, I should eat what kind of food to improve my health?"
-        } 
-    ]
-}
+[
+    {
+        "subject": "food",
+        "queries": [
+            {
+                "from": "human",
+                "query": "Please tell me some delicious American food."
+            },
+            {
+                "from": "human",
+                "query": "Then I like roast duck. Do you know how to cook it?"
+            },
+            {
+                "from": "human",
+                "query": "If I want to be a cook, what I should do?"
+            } 
+            ]
+    }
+]
