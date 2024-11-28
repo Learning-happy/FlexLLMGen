@@ -585,7 +585,9 @@ class OptLM:
                  config: Union[str, OptConfig],
                  env: ExecutionEnv,
                  path: str,
-                 policy: Policy):
+                 policy: Policy,
+                 history_disk: TorchDevice,
+                 cache_shape):
         if isinstance(config, str):
             config = get_opt_config(config)
         self.config = config
@@ -593,6 +595,7 @@ class OptLM:
         self.path = path
         self.policy = policy
         self.num_gpu_batches = policy.num_gpu_batches
+        self.history_disk = history_disk
 
         layers = []
         layers.append(InputEmbed(self.config, self.env, self.policy))
@@ -629,6 +632,7 @@ class OptLM:
         self.cache_home = array_2d(num_layers, num_gpu_batches, ValueHolder)
         self.cache_read_buf = array_2d(num_layers, num_gpu_batches, ValueHolder)
         self.cache_write_buf = array_2d(num_layers, num_gpu_batches, ValueHolder)
+        self.cache_history_home = array_2d(num_layers, num_gpu_batches, ValueHolder)
         # weight[j]
         self.weight_read_buf = array_1d(num_layers, ValueHolder)
         # attention_mask[k]
@@ -636,6 +640,18 @@ class OptLM:
 
         self.task = None
         self.init_all_weights()
+        # Init history_cache_home
+        for j in range(num_layers):
+            for k in range(num_gpu_batches):
+                self.init_history_cache(j, k, cache_shape)
+                
+    def init_history_cache(self, j, k, cache_shape):
+        if isinstance(self.layers[j], SelfAttention):
+            device = self.history_disk
+            k_cache = device.allocate(cache_shape, np.float16)
+            v_cache = device.allocate(cache_shape, np.float16)
+            cache = (k_cache, v_cache)
+            self.cache_history_home[j][k].store(cache)
 
     def set_task(self, task):
         self.task = task
@@ -900,8 +916,12 @@ class OptLM:
             self.generation_loop_debug_normal()
         else:
             raise ValueError("Invalid debug mode: {debug_mode}")
-
-        # Delete cache
+               
+        # Save and Delete cache
+        for j in range(num_layers):
+            for k in range(num_gpu_batches):
+                self.save_cache(j, k)
+        self.history_disk.synchronize()
         for j in range(num_layers):
             for k in range(num_gpu_batches):
                 self.delete_cache(j, k)
@@ -909,6 +929,17 @@ class OptLM:
             self.env.cpu.del_attention_compute_workspace()
 
         return self.output_ids
+    
+    def save_cache(self, j, k):
+        if isinstance(self.layers[j], SelfAttention):
+            k_cache, v_cache = self.cache_home[j][k].val
+            k_home, v_home = self.cache_history_home[j][k].val
+            indices = (slice(0, k_cache.shape[0]),
+                       slice(0, k_cache.shape[1]))
+            general_copy(k_home, indices, k_cache, None)
+            general_copy(v_home, indices, v_cache, None)
+            
+        
 
     def generation_loop_normal(self):
         for i in range(self.execute_gen_len):
@@ -1205,6 +1236,7 @@ def run_flexllmgen(args):
     gpu = TorchDevice("cuda:0")
     cpu = TorchDevice("cpu")
     disk = TorchDisk(args.offload_dir)
+    history_disk = TorchDisk('./history_kv')
     env = ExecutionEnv(gpu=gpu, cpu=cpu, disk=disk, mixed=TorchMixedDevice([gpu, cpu, disk]))
 
     policy = Policy(args.gpu_batch_size, args.num_gpu_batches,
@@ -1229,7 +1261,8 @@ def run_flexllmgen(args):
           f"hidden size (prefill): {hidden_size/GB:.3f} GB")
 
     print("init weight...")
-    model = OptLM(opt_config, env, args.path, policy)
+    cache_shape = (prompt_len + gen_len - 1, policy.gpu_batch_size * opt_config.n_head, opt_config.hidden_size // opt_config.n_head)
+    model = OptLM(opt_config, env, args.path, policy, history_disk, cache_shape)
 
     try:
         print("benchmark - generate")
@@ -1247,6 +1280,7 @@ def run_flexllmgen(args):
         costs = timers("generate").costs
     finally:
         env.close_copy_threads()
+        history_disk.close_copy_threads()
 
     # Log output
     prefill_latency = costs[0]

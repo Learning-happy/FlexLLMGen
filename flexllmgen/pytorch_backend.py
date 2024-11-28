@@ -42,7 +42,7 @@ class DeviceType(Enum):
             return DeviceType.CPU
         elif name == "cuda":
             return DeviceType.CUDA
-        elif name == "disk":
+        elif name == "disk" or name == "history_disk":
             return DeviceType.DISK
         elif name == "mixed":
             return DeviceType.MIXED
@@ -188,6 +188,7 @@ class TorchDevice:
             pin_memory = False
         dtype = np_dtype_to_torch_dtype[dtype]
         data = torch.empty(shape, dtype=dtype, pin_memory=pin_memory, device=self.dev)
+        
         return TorchTensor.create_from_torch(data, self, name=name)
 
     def delete(self, tensor):
