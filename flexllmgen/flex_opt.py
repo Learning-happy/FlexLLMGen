@@ -1236,7 +1236,14 @@ def run_flexllmgen(args):
         timers("generate").reset()
         # 对每一个session(i)进行处理
         for i in range(len(inputs)):
-            output_ids = model.generate(inputs[i], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
+            show_str = f"session {i}:\n"
+            for j in range(len(inputs[i])):
+            # 对每一个q(j)进行处理
+                output_ids = model.generate([inputs[i][j]], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
+                outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+                show_str += f"q&a {j}: {outputs[0]}\n"
+                show_str += "-" * 70 + "\n"
+            print(show_str)
         costs = timers("generate").costs
     finally:
         env.close_copy_threads()
@@ -1255,14 +1262,14 @@ def run_flexllmgen(args):
     _, gpu_peak_mem = gpu.mem_stats()
     _, cpu_peak_mem = cpu.mem_stats()
 
-    if DUMMY_WEIGHT not in args.path:
-        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
-        show_str = "Outputs:\n" + 70 * '-' + "\n"
-        for i in range(len(outputs)):
-            show_str += f"{i}: {outputs[i]}\n"
-            show_str += "-" * 70 + "\n"
-        if args.verbose >= 2:
-            print(show_str)
+    # if DUMMY_WEIGHT not in args.path:
+    #     outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+    #     show_str = "Outputs:\n" + 70 * '-' + "\n"
+    #     for i in range(len(outputs)):
+    #         show_str += f"{i}: {outputs[i]}\n"
+    #         show_str += "-" * 70 + "\n"
+    #     if args.verbose >= 2:
+    #         print(show_str)
 
     gpu.print_stats()
     cpu.print_stats()

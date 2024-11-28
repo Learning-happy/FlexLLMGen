@@ -15,5 +15,18 @@
                 "query": "If I want to be a cook, what I should do?"
             } 
             ]
+    },
+    {
+        "subject": "alien",
+        "queries": [
+            {
+                "from": "human",
+                "query": "Are there extraterrestrial beings in the universe?"
+            },
+            {
+                "from": "human",
+                "query": "If there are aliens, what should human beings do?"
+            }
+            ]
     }
 ]
