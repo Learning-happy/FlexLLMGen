@@ -1176,15 +1176,17 @@ def get_filename(args):
 #                           max_length=prompt_len).input_ids
 #     return (input_ids[0],) * num_prompts
 def get_test_inputs(prompt_len, tokenizer):
-    prompts = []
+    input_ids = []
     with open('sessions.json', 'r', encoding='utf-8') as file:
         sessions = json.load(file)
     for session in sessions:
+        prompts_session = []
         queries = session['queries']
         for query in queries:
-            prompts.append(query['query'])
-    input_ids = tokenizer(prompts, padding="max_length",
+            prompts_session.append(query['query'])
+        input_ids_session = tokenizer(prompts_session, padding="max_length",
                           max_length=prompt_len).input_ids
+        input_ids.append(input_ids_session)
     return input_ids
 
 
@@ -1197,6 +1199,7 @@ def run_flexllmgen(args):
     prompt_len, gen_len, cut_gen_len = args.prompt_len, args.gen_len, args.cut_gen_len
 
     # Task and policy
+    # inputs: [[q1,q2,q3], [q1,q2,q3],...]
     inputs = get_test_inputs(prompt_len, tokenizer)
 
     gpu = TorchDevice("cuda:0")
@@ -1231,9 +1234,9 @@ def run_flexllmgen(args):
     try:
         print("benchmark - generate")
         timers("generate").reset()
-        output_ids = model.generate(
-            inputs, max_new_tokens=args.gen_len,
-            debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
+        # 对每一个session(i)进行处理
+        for i in range(len(inputs)):
+            output_ids = model.generate(inputs[i], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
         costs = timers("generate").costs
     finally:
         env.close_copy_threads()
