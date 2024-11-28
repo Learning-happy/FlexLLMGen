@@ -927,7 +927,7 @@ class OptLM:
                 self.delete_cache(j, k)
         if self.policy.cpu_cache_compute:
             self.env.cpu.del_attention_compute_workspace()
-
+        assert len(self.output_ids[0]) == 32 + len(inputs[0])
         return self.output_ids
     
     def save_cache(self, j, k):
