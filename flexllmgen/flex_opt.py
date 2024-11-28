@@ -724,10 +724,6 @@ class OptLM:
             i -= 1
             if i == -1:
                 return
-        if i == self.task.gen_len - 1:  # last token, no need to store cache
-            self.cache_write_buf[j][k].pop()
-            return
-
         # Store cache_write_buf to cache_home
         # Delete cache_write_buf
         if overlap:
@@ -1261,7 +1257,7 @@ def run_flexllmgen(args):
           f"hidden size (prefill): {hidden_size/GB:.3f} GB")
 
     print("init weight...")
-    cache_shape = (prompt_len + gen_len - 1, policy.gpu_batch_size * opt_config.n_head, opt_config.hidden_size // opt_config.n_head)
+    cache_shape = (prompt_len + gen_len, policy.gpu_batch_size * opt_config.n_head, opt_config.hidden_size // opt_config.n_head)
     model = OptLM(opt_config, env, args.path, policy, history_disk, cache_shape)
 
     try:

@@ -289,7 +289,7 @@ class TorchDevice:
         num_head, hidden_size, prompt_len, gen_len, gpu_batch_size = (
             config.n_head, config.input_dim, task.prompt_len, task.gen_len,
             policy.gpu_batch_size)
-        shape = (prompt_len + gen_len - 1, gpu_batch_size * num_head, hidden_size // num_head)
+        shape = (prompt_len + gen_len, gpu_batch_size * num_head, hidden_size // num_head)
         # NOTE: disable pin_memory due to high memory overhead
         pin_memory = False
         k_cache = self.allocate(shape, np.float16, pin_memory=pin_memory)
@@ -669,7 +669,7 @@ class TorchDisk:
         num_head, hidden_size, prompt_len, gen_len, gpu_batch_size = (
             config.n_head, config.input_dim, task.prompt_len, task.gen_len,
             policy.gpu_batch_size)
-        shape = (prompt_len + gen_len - 1, gpu_batch_size * num_head, hidden_size // num_head)
+        shape = (prompt_len + gen_len, gpu_batch_size * num_head, hidden_size // num_head)
         k_cache = self.allocate(shape, np.float16)
         v_cache = self.allocate(shape, np.float16)
         return k_cache, v_cache
@@ -740,7 +740,7 @@ class TorchMixedDevice:
         num_head, hidden_size, prompt_len, gen_len, gpu_batch_size = (
             config.n_head, config.input_dim, task.prompt_len, task.gen_len,
             policy.gpu_batch_size)
-        shape = (prompt_len + gen_len - 1, gpu_batch_size * num_head, hidden_size // num_head)
+        shape = (prompt_len + gen_len, gpu_batch_size * num_head, hidden_size // num_head)
 
         # We have to round to a multiple of `num_head`
         if policy.cache_disk_percent == 0:
