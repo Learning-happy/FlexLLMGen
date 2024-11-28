@@ -1,0 +1,17 @@
+{
+    "subject": "food",
+    "conversations": [
+        {
+            "from": "human",
+            "value": "Please tell me some delicious Beijing food."
+        },
+        {
+            "from": "human",
+            "value": "Then I like Beijing roast duck. Do you know how to cook it?"
+        },
+        {
+            "from": "human",
+            "value": "If I get cold, I should eat what kind of food to improve my health?"
+        } 
+    ]
+}
