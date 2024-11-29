@@ -179,7 +179,7 @@ class InputEmbed:
         return (batch_size, seq_len), np.int64
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k):
+                cache_write_buf, i, k, session_len, history_cache_home):
         # Compute input embedding
         donate = [False] * 4
         h, donate[0] = hidden.val, True
@@ -192,7 +192,7 @@ class InputEmbed:
             (w_token, _), (w_pos, _) = weight_read_buf.val
 
         h = self.compute.opt_input_embed(h, mask,
-            w_token, w_pos, self.config.pad_token_id, donate)
+            w_token, w_pos, self.config.pad_token_id, donate, session_len)
         hidden.val = h
 
 
@@ -247,7 +247,7 @@ class OutputEmbed:
         return (batch_size, seq_len, self.config.input_dim), self.config.dtype
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k):
+                cache_write_buf, i, k, session_len, history_cache_home):
         donate = [False] * 4
         h, donate[0] = hidden.val, True
 
@@ -408,9 +408,6 @@ class SelfAttention:
         k_home, v_home = cache_home.val
         k_new, v_new = cache_write_buf.pop()
 
-        if i == self.task.gen_len - 1:  # last token, no need to store cache
-            return
-
         if i == 0:  # prefill
             indices = (slice(0, k_new.shape[0]),
                        slice(0, k_new.shape[1]))
@@ -426,7 +423,7 @@ class SelfAttention:
         return (batch_size, seq_len, self.config.input_dim), self.config.dtype
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k):
+                cache_write_buf, i, k, session_len, history_cache_home):
         n_head = self.config.n_head
 
         donate = [False] * 14
@@ -444,9 +441,10 @@ class SelfAttention:
 
         if i == 0:  # prefill
             mask, donate[1] = attention_mask.val.smart_copy(self.compute)
-            h, new_k_cache, new_v_cache = self.compute.mha(h, mask, w_q, b_q,
-                w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head, donate,
-                self.policy.compress_cache, self.policy.comp_cache_config)
+            if session_len == 0:
+                h, new_k_cache, new_v_cache = self.compute.mha(h, mask, w_q, b_q, w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head, donate, self.policy.compress_cache, self.policy.comp_cache_config)
+            else:
+                h, new_k_cache, new_v_cache = self.compute.mha_history(h, mask, w_q, b_q, w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head, donate, self.policy.compress_cache, self.policy.comp_cache_config, session_len, history_cache_home)
             cache_write_buf.store((new_k_cache, new_v_cache))
         else:  # decoding
             mask, donate[1] = attention_mask.val.smart_copy(self.attention_compute)
@@ -454,7 +452,7 @@ class SelfAttention:
             h, new_k_cache, new_v_cache = self.compute.mha_gen(h, mask, w_q,
                 b_q, w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head,
                 k_cache, v_cache, donate, self.policy.attn_sparsity,
-                self.policy.compress_cache, self.policy.comp_cache_config)
+                self.policy.compress_cache, self.policy.comp_cache_config, session_len)
             cache_write_buf.store((new_k_cache, new_v_cache))
 
         hidden.val = h
@@ -518,7 +516,7 @@ class MLP:
         return (batch_size, seq_len, self.config.input_dim), self.config.dtype
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k):
+                cache_write_buf, i, k, session_len, history_cache_home):
         donate = [False] * 7
         h, donate[0] = hidden.val, True
 
@@ -569,15 +567,15 @@ class TransformerLayer:
         self.attention.store_cache(cache_home, cache_write_buf, i)
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k):
+                cache_write_buf, i, k, session_len, history_cache_home):
         if k == self.policy.num_gpu_batches - 1:
             read_buf1, read_buf2 = weight_read_buf.pop()
         else:
             read_buf1, read_buf2 = weight_read_buf.val
 
         self.attention.forward(hidden, cache_read_buf, read_buf1, attention_mask,
-                               cache_write_buf, i, k)
-        self.mlp.forward(hidden, None, read_buf2, attention_mask, None, i, k)
+                               cache_write_buf, i, k, session_len)
+        self.mlp.forward(hidden, None, read_buf2, attention_mask, None, i, k, session_len)
 
 
 class OptLM:
@@ -596,6 +594,7 @@ class OptLM:
         self.policy = policy
         self.num_gpu_batches = policy.num_gpu_batches
         self.history_disk = history_disk
+        self.session_len = 0
 
         layers = []
         layers.append(InputEmbed(self.config, self.env, self.policy))
@@ -801,7 +800,7 @@ class OptLM:
         # Run layer computation
         self.layers[j].forward(self.hidden[i][j][k], self.cache_read_buf[j][k],
             self.weight_read_buf[j], self.attention_mask[k],
-            self.cache_write_buf[j][k], i, k)
+            self.cache_write_buf[j][k], i, k, self.session_len, self.cache_history_home[j][k])
 
     def sync(self):
         self.env.disk.synchronize()
@@ -924,6 +923,8 @@ class OptLM:
         if self.policy.cpu_cache_compute:
             self.env.cpu.del_attention_compute_workspace()
         assert len(self.output_ids[0]) == 32 + len(inputs[0])
+        # 统计output_ids[0]中非1的tokens个数
+        self.session_len = sum(1 for token in self.output_ids[0] if token != 1)
         return self.output_ids
     
     def save_cache(self, j, k):
@@ -1273,6 +1274,7 @@ def run_flexllmgen(args):
                 show_str += f"q&a {j}: {outputs[0]}\n"
                 show_str += "-" * 70 + "\n"
             print(show_str)
+            model.session_len = 0     
         costs = timers("generate").costs
     finally:
         env.close_copy_threads()

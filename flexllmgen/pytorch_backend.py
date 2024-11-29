@@ -237,7 +237,7 @@ class TorchDevice:
         if donate[0]: attention_mask.delete()
         return TorchTensor.create_from_torch(data, self)
 
-    def opt_input_embed(self, inputs, attention_mask, w_token, w_pos, pad_token_id, donate):
+    def opt_input_embed(self, inputs, attention_mask, w_token, w_pos, pad_token_id, donate, session_len):
         # decompress weights
         if w_token.device.device_type == DeviceType.COMPRESSED:
             w_token = w_token.device.decompress(w_token)
@@ -251,10 +251,16 @@ class TorchDevice:
         # token embedding
         token_embed = F.embedding(token_ids, w_token.data, pad_token_id)
 
+        # 统计mask中True的个数,也即此次q的tokens数量
+        true_counts = torch.sum(mask, dim=1)
+        # 将历史tokens的位置也置为True,用来计算positions
+        mask[:,-true_counts-session_len:-true_counts] = True
         # pos embedding
         positions = torch.cumsum(mask, dim=1).int() * mask + 1
+        # 将历史tokens的位置还原为False
+        mask[:,-true_counts-session_len:-true_counts] = False
 
-        # cut positions if `past_key_values_length` is > 0
+        # cut positions if `past_key_values_length` is > 0 (decode阶段只会取新生成的token的1个position)
         past_key_values_length = mask.shape[1] - token_ids.shape[1]
         positions = positions[:, past_key_values_length:]
 
@@ -364,10 +370,91 @@ class TorchDevice:
             v = TorchTensor.create_from_torch(v, self)
 
         return TorchTensor.create_from_torch(value, self), k, v
+    
+    def mha_history(self, inputs, attention_mask, w_q, b_q, w_k, b_k, w_v, b_v,
+            w_out, b_out, w_ln, b_ln, n_head, donate, compress_cache, comp_config, session_len, history_cache_home):
+        """Multi-head attention (prefill phase and load history kvcache)."""
+        # decompress weights
+        if w_q.device.device_type == DeviceType.COMPRESSED:
+            w_q = w_q.device.decompress(w_q)
+            w_k = w_k.device.decompress(w_k)
+            w_v = w_v.device.decompress(w_v)
+            w_out = w_out.device.decompress(w_out)
+
+        b, s, h = inputs.shape
+        head_dim = h // n_head
+        scaling = head_dim ** -0.5
+
+        hidden = F.layer_norm(inputs.data, (h,), weight=w_ln.data, bias=b_ln.data)
+        s1 = session_len
+        # 统计mask中每行非1元素的个数, 计算出此次q的长度
+        s2 = 0
+        for i in attention_mask.data[0]:
+            if i == True:
+                s2 = s2 + 1
+        # shape: (b, s, h)
+        q = F.linear(hidden, w_q.data, bias=b_q.data) * scaling
+        k = F.linear(hidden, w_k.data, bias=b_k.data)
+        v = F.linear(hidden, w_v.data, bias=b_v.data)
+        # shape: (b, s, n_head, head_dim)
+        q = q.view(b, s, n_head, head_dim)
+        k = k.view(b, s, n_head, head_dim)
+        v = v.view(b, s, n_head, head_dim)
+
+        # shape: (b * n_head, s, head_dim)
+        q = q.permute(0, 2, 1, 3).reshape(b * n_head, s, head_dim)
+        # shape: (b * n_head, head_dim, s)
+        k = k.permute(0, 2, 3, 1).reshape(b * n_head, head_dim, s)
+        # shape: (b * n_head, s, head_dim)
+        v = v.permute(0, 2, 1, 3).reshape(b * n_head, s, head_dim)
+
+        # 读取历史session_len个tokens的k_cache和v_cache
+        # shape: (s1, b * n_head, head_dim)
+        history_k, history_v = history_cache_home.val[0].smart_copy(self)[0].data[-s1:,:,:],history_cache_home.val[1].smart_copy(self)[0].data[-s1:,:,:] # wrong
+        # 将历史kcache填入目前的k矩阵
+        # shape: (b * n_head, head_dim, s1)
+        k[:,:,-s1-s2:-s2] = history_k.permute(1, 2, 0)
+        # shape: (b * n_head, s, s) 这里s = 512, 实际有意义的部分为(b * n_head, s2, -s1-s2:)
+        attn_weights = torch.bmm(q, k)
+        # mask掉无意义区域，只保留梯形
+        attn_weights[:,:-s2,:] = -1e4
+        attn_weights[:,:,:-s1-s2] = -1e4
+        idx = torch.arange(s, device=self.dev)
+        causal_mask = (idx <= idx.view(s, 1)).view(1, 1, s, s)
+        attn_weights = attn_weights.view(b, n_head, s, s)
+        attn_weights = torch.where(causal_mask, attn_weights, -1e4)
+        # softmax
+        attn_weights = attn_weights.view(b * n_head, s, s)
+        attn_weights = F.softmax(attn_weights, dim=2)
+        # 将历史vcache填入目前的v矩阵
+        v[:,-s1-s2:-s2,:] = history_v.permute(1, 0, 2)
+        # shape: (b, n_head, s, head_dim)
+        value = torch.bmm(attn_weights, v).view(b, n_head, s, head_dim)
+        # shape: (b, s, h)
+        value = value.transpose(1, 2).reshape(b, s, h)
+        value = F.linear(value, w_out.data, bias=b_out.data)
+
+        value.add_(inputs.data)
+
+        if donate[0]: inputs.delete()
+        if donate[1]: attention_mask.delete()
+
+        # (s, b * n_head, head_dim)
+        k = k.permute(2, 0, 1)
+        v = v.permute(1, 0, 2)
+
+        if compress_cache:
+            k = self.compressed_device.compress(k, comp_config)
+            v = self.compressed_device.compress(v, comp_config)
+        else:
+            k = TorchTensor.create_from_torch(k, self)
+            v = TorchTensor.create_from_torch(v, self)
+
+        return TorchTensor.create_from_torch(value, self), k, v
 
     def mha_gen(self, inputs, attention_mask, w_q, b_q, w_k, b_k, w_v, b_v,
                 w_out, b_out, w_ln, b_ln, n_head, k_cache, v_cache, donate,
-                attn_sparsity, compress_cache, comp_config):
+                attn_sparsity, compress_cache, comp_config, session_len):
         """Multi-head attention (decoding phase)."""
         # decompress weights
         if w_q.device.device_type == DeviceType.COMPRESSED:
@@ -381,6 +468,14 @@ class TorchDevice:
         head_dim = h // n_head
         scaling = head_dim ** -0.5
 
+        s1 = session_len
+        # 统计mask中每行非1元素的个数, 计算出此次q和生成tokens的数量
+        s2 = 0
+        for i in attention_mask.data[0]:
+            if i == True:
+                s2 = s2 + 1
+        # 应当关注的k向量的数量
+        s_k = s1 + s2
         hidden = F.layer_norm(inputs.data, (h,), weight=w_ln.data, bias=b_ln.data)
 
         # shape: (b, 1, h)
@@ -419,12 +514,12 @@ class TorchDevice:
 
                 if k.is_cuda:
                     value = self._attention_value(q, k, v, attention_mask.data,
-                        b, src_s, tgt_s, n_head, head_dim)
+                        b, src_s, tgt_s, n_head, head_dim, s_k)
                 else:
                     q = q.float().cpu()
                     k, v = k.float(), v.float()
                     value = self._attention_value(q, k, v, attention_mask.data,
-                        b, src_s, tgt_s, n_head, head_dim).cuda().half()
+                        b, src_s, tgt_s, n_head, head_dim, s_k).cuda().half()
             else:  # Sparse attention
                 # shape: (s, b * n_head, head_dim)
                 k = k_cache.data[:src_s]
@@ -445,7 +540,7 @@ class TorchDevice:
             assert attn_sparsity >= 1.0
             value = self._mixed_device_attention(q, k_cache, v_cache,
                 k_new, v_new, attention_mask.data, b, src_s, tgt_s,
-                n_head, head_dim)
+                n_head, head_dim, s_k)
 
         # shape: (b, 1, h)
         value = value.transpose(1, 2).view(b, tgt_s, h)
@@ -469,21 +564,17 @@ class TorchDevice:
 
         return TorchTensor.create_from_torch(value, self), k_new, v_new
 
-    def _attention_weights(self, q, k, mask, b, src_s, n_head):
+    def _attention_weights(self, q, k, mask, b, src_s, n_head, s_k):
         # shape: (b * n_head, 1, s)
         attn_weights = torch.bmm(q, k)
-        # shape: (b, 1, 1, s)
-        mask = mask.view(b, 1, 1, src_s)
         # shape: (b * n_head, 1, s)
-        attn_weights = attn_weights.view(b, n_head, 1, src_s)
-        attn_weights = torch.where(mask, attn_weights, -1e4)
-        attn_weights = attn_weights.view(b * n_head, 1, src_s)
+        attn_weights[:,:,:-s_k] = -1e4
         attn_weights = F.softmax(attn_weights, dim=2)
         return attn_weights
 
-    def _attention_value(self, q, k, v, mask, b, src_s, tgt_s, n_head, head_dim):
+    def _attention_value(self, q, k, v, mask, b, src_s, tgt_s, n_head, head_dim, s_k):
         # shape: (b * n_head, 1, s)
-        attn_weights = self._attention_weights(q, k, mask, b, src_s, n_head)
+        attn_weights = self._attention_weights(q, k, mask, b, src_s, n_head, s_k)
         # shape: (b, n_head, 1, head_dim)
         return torch.bmm(attn_weights, v).view(b, n_head, tgt_s, head_dim)
 
@@ -522,7 +613,7 @@ class TorchDevice:
         return torch.bmm(attn_weights, v).view(b, n_head, tgt_s, head_dim)
 
     def _mixed_device_attention(self, q, k_cache, v_cache, k_new, v_new,
-            mask, b, src_s, tgt_s, n_head, head_dim):
+            mask, b, src_s, tgt_s, n_head, head_dim, s_k):
         # The caches are stored on both gpu and cpu.
         # Compute attention on gpu for caches stored on gpu.
         # Compute attention on cpu for caches stored on cpu.
