@@ -621,6 +621,8 @@ class OptLM:
         self.load_weight_stream = torch.cuda.Stream()
         self.load_cache_stream = torch.cuda.Stream()
         self.store_cache_stream = torch.cuda.Stream()
+        self.store_history_stream = torch.cuda.Stream()
+        self.load_history_stream = torch.cuda.Stream()
 
         # Intermediate tensors
         # The following buffers store values used
@@ -798,6 +800,7 @@ class OptLM:
         # Clear the weight_read_buf if it is the last gpu batch
         # Clear the cache_read_buf
         # Run layer computation
+        
         self.layers[j].forward(self.hidden[i][j][k], self.cache_read_buf[j][k],
             self.weight_read_buf[j], self.attention_mask[k],
             self.cache_write_buf[j][k], i, k, self.session_len, self.cache_history_home[j][k])
@@ -924,7 +927,8 @@ class OptLM:
             self.env.cpu.del_attention_compute_workspace()
         assert len(self.output_ids[0]) == 32 + len(inputs[0])
         # 统计output_ids[0]中非1的tokens个数
-        self.session_len = sum(1 for token in self.output_ids[0] if token != 1)
+        self.session_len += sum(1 for token in self.output_ids[0] if token != 1)
+        print(self.session_len)
         return self.output_ids
     
     def save_cache(self, j, k):
@@ -1276,6 +1280,13 @@ def run_flexllmgen(args):
             print(show_str)
             model.session_len = 0     
         costs = timers("generate").costs
+        for j in range(model.num_layers):
+            for k in range(model.num_gpu_batches):
+                v = model.cache_history_home[j][k].pop()
+                if v:
+                    for x in v:
+                        x.delete()
+        
     finally:
         env.close_copy_threads()
         history_disk.close_copy_threads()
