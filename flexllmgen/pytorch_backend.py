@@ -237,7 +237,7 @@ class TorchDevice:
         if donate[0]: attention_mask.delete()
         return TorchTensor.create_from_torch(data, self)
 
-    def opt_input_embed(self, inputs, attention_mask, w_token, w_pos, pad_token_id, donate, session_len):
+    def opt_input_embed(self, inputs, attention_mask, w_token, w_pos, pad_token_id, donate, history_kv_len):
         # decompress weights
         if w_token.device.device_type == DeviceType.COMPRESSED:
             w_token = w_token.device.decompress(w_token)
@@ -254,11 +254,11 @@ class TorchDevice:
         # 统计mask中True的个数,也即此次q的tokens数量
         true_counts = torch.sum(mask, dim=1)
         # 将历史tokens的位置也置为True,用来计算positions
-        mask[:,-true_counts-session_len:-true_counts] = True
+        mask[:,-true_counts-history_kv_len:-true_counts] = True
         # pos embedding
         positions = torch.cumsum(mask, dim=1).int() * mask + 1
         # 将历史tokens的位置还原为False
-        mask[:,-true_counts-session_len:-true_counts] = False
+        mask[:,-true_counts-history_kv_len:-true_counts] = False
 
         # cut positions if `past_key_values_length` is > 0 (decode阶段只会取新生成的token的1个position)
         past_key_values_length = mask.shape[1] - token_ids.shape[1]
@@ -295,7 +295,7 @@ class TorchDevice:
         num_head, hidden_size, prompt_len, gen_len, gpu_batch_size = (
             config.n_head, config.input_dim, task.prompt_len, task.gen_len,
             policy.gpu_batch_size)
-        shape = (prompt_len + gen_len, gpu_batch_size * num_head, hidden_size // num_head)
+        shape = (prompt_len + gen_len - 1, gpu_batch_size * num_head, hidden_size // num_head)
         # NOTE: disable pin_memory due to high memory overhead
         pin_memory = False
         k_cache = self.allocate(shape, np.float16, pin_memory=pin_memory)
@@ -372,7 +372,7 @@ class TorchDevice:
         return TorchTensor.create_from_torch(value, self), k, v
     
     def mha_history(self, inputs, attention_mask, w_q, b_q, w_k, b_k, w_v, b_v,
-            w_out, b_out, w_ln, b_ln, n_head, donate, compress_cache, comp_config, session_len, history_cache_home):
+            w_out, b_out, w_ln, b_ln, n_head, donate, compress_cache, comp_config, history_kv_len, history_cache_home):
         """Multi-head attention (prefill phase and load history kvcache)."""
         # decompress weights
         if w_q.device.device_type == DeviceType.COMPRESSED:
@@ -386,7 +386,7 @@ class TorchDevice:
         scaling = head_dim ** -0.5
 
         hidden = F.layer_norm(inputs.data, (h,), weight=w_ln.data, bias=b_ln.data)
-        s1 = session_len
+        s1 = history_kv_len
         # 统计mask中每行非1元素的个数, 计算出此次q的长度
         s2 = 0
         for i in attention_mask.data[0]:
@@ -408,7 +408,7 @@ class TorchDevice:
         # shape: (b * n_head, s, head_dim)
         v = v.permute(0, 2, 1, 3).reshape(b * n_head, s, head_dim)
 
-        # 读取历史session_len个tokens的k_cache和v_cache
+        # 读取历史history_kv_len个tokens的k_cache和v_cache
         # shape: (s1, b * n_head, head_dim)
         history_k, history_v = history_cache_home.val[0].smart_copy(self)[0].data[-s1:,:,:],history_cache_home.val[1].smart_copy(self)[0].data[-s1:,:,:] # wrong
         # 将历史kcache填入目前的k矩阵
@@ -454,7 +454,7 @@ class TorchDevice:
 
     def mha_gen(self, inputs, attention_mask, w_q, b_q, w_k, b_k, w_v, b_v,
                 w_out, b_out, w_ln, b_ln, n_head, k_cache, v_cache, donate,
-                attn_sparsity, compress_cache, comp_config, session_len):
+                attn_sparsity, compress_cache, comp_config, history_kv_len):
         """Multi-head attention (decoding phase)."""
         # decompress weights
         if w_q.device.device_type == DeviceType.COMPRESSED:
@@ -468,7 +468,7 @@ class TorchDevice:
         head_dim = h // n_head
         scaling = head_dim ** -0.5
 
-        s1 = session_len
+        s1 = history_kv_len
         # 统计mask中每行非1元素的个数, 计算出此次q和生成tokens的数量
         s2 = 0
         for i in attention_mask.data[0]:
@@ -760,7 +760,7 @@ class TorchDisk:
         num_head, hidden_size, prompt_len, gen_len, gpu_batch_size = (
             config.n_head, config.input_dim, task.prompt_len, task.gen_len,
             policy.gpu_batch_size)
-        shape = (prompt_len + gen_len, gpu_batch_size * num_head, hidden_size // num_head)
+        shape = (prompt_len + gen_len - 1, gpu_batch_size * num_head, hidden_size // num_head)
         k_cache = self.allocate(shape, np.float16)
         v_cache = self.allocate(shape, np.float16)
         return k_cache, v_cache
@@ -831,7 +831,7 @@ class TorchMixedDevice:
         num_head, hidden_size, prompt_len, gen_len, gpu_batch_size = (
             config.n_head, config.input_dim, task.prompt_len, task.gen_len,
             policy.gpu_batch_size)
-        shape = (prompt_len + gen_len, gpu_batch_size * num_head, hidden_size // num_head)
+        shape = (prompt_len + gen_len - 1, gpu_batch_size * num_head, hidden_size // num_head)
 
         # We have to round to a multiple of `num_head`
         if policy.cache_disk_percent == 0:
