@@ -28,5 +28,61 @@
                 "query": "If there are aliens, what should human beings do?"
             }
             ]
+    },
+    {
+        "subject": "continue writing",
+        "queries": [
+            {
+                "from": "human",
+                "query": "I have a car"
+            },
+            {
+                "from": "human",
+                "query": "I love my car"
+            }
+            ]
+    },
+    {
+        "subject": "continue writing",
+        "queries": [
+            {
+                "from": "human",
+                "query": "Paris is a"
+            },
+            {
+                "from": "human",
+                "query": "Paris is located in"
+            }
+            ]
+    },
+    {
+        "subject": "weather",
+        "queries": [
+            {
+                "from": "human",
+                "query": "I don't like raining day, because"
+            },
+            {
+                "from": "human",
+                "query": "I like sunning day, because"
+            }
+            ]
+    },
+    {
+        "subject": "football",
+        "queries": [
+            {
+                "from": "human",
+                "query": "Football is"
+            },
+            {
+                "from": "human",
+                "query": "There are some famous football players around the world, such as"
+            },
+            {
+                "from": "human",
+                "query": "For becoming a football player, I decide"
+            }
+            ]
     }
 ]

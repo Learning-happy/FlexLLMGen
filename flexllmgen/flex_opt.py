@@ -622,7 +622,6 @@ class OptLM:
         self.load_cache_stream = torch.cuda.Stream()
         self.store_cache_stream = torch.cuda.Stream()
         self.store_history_stream = torch.cuda.Stream()
-        self.load_history_stream = torch.cuda.Stream()
 
         # Intermediate tensors
         # The following buffers store values used
@@ -807,7 +806,6 @@ class OptLM:
 
     def sync(self):
         self.env.disk.synchronize()
-        self.history_disk.synchronize()
         torch.cuda.synchronize()
 
     def init_all_weights(self):
@@ -937,7 +935,7 @@ class OptLM:
             k_home, v_home = self.cache_history_home[j][k].val
             indices = (slice(0, k_cache.shape[0]),
                        slice(0, k_cache.shape[1]))
-            with torch.cuda.stream(self.load_history_stream): 
+            with torch.cuda.stream(self.store_history_stream): 
                 general_copy(k_home, indices, k_cache, None)
                 general_copy(v_home, indices, v_cache, None)
             
@@ -1275,20 +1273,20 @@ def run_flexllmgen(args):
             show_str = f"session {i}:\n"
             for j in range(len(inputs[i])):
             # 对每一个q(j)进行处理
-                output_ids = model.generate(inputs[i][j], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
+                output_ids = model.generate([inputs[i][j]], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
                 outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
                 show_str += f"q&a {j}: {outputs[0]}\n"
                 show_str += "-" * 70 + "\n"
             print(show_str)
             model.history_kv_len = 0     
         costs = timers("generate").costs
-        for j in range(model.num_layers):
-            for k in range(model.num_gpu_batches):
-                v = model.cache_history_home[j][k].pop()
-                if v:
-                    for x in v:
-                        x.delete()
-        
+        # for j in range(model.num_layers):
+        #     for k in range(model.num_gpu_batches):
+        #         v = model.cache_history_home[j][k].pop()
+        #         if v:
+        #             for x in v:
+        #                 if x:
+        #                   x.delete()
     finally:
         env.close_copy_threads()
         history_disk.close_copy_threads()
