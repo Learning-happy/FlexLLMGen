@@ -410,7 +410,7 @@ class TorchDevice:
 
         # 读取历史history_kv_len个tokens的k_cache和v_cache
         # shape: (s1, b * n_head, head_dim)
-        history_k, history_v = history_cache_home.val[0].smart_copy(self)[0].data[-s1:,:,:],history_cache_home.val[1].smart_copy(self)[0].data[-s1:,:,:] # wrong
+        history_k, history_v = history_cache_home.val[0].smart_copy(self)[0].data[-s1:,:,:],history_cache_home.val[1].smart_copy(self)[0].data[-s1:,:,:]
         # 将历史kcache填入目前的k矩阵
         # shape: (b * n_head, head_dim, s1)
         k[:,:,-s1-s2:-s2] = history_k.permute(1, 2, 0)

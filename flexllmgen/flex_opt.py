@@ -179,7 +179,7 @@ class InputEmbed:
         return (batch_size, seq_len), np.int64
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k, history_kv_len, history_cache_home):
+                cache_write_buf, i, j, k, history_kv_len, history_cache_home):
         # Compute input embedding
         donate = [False] * 4
         h, donate[0] = hidden.val, True
@@ -247,7 +247,7 @@ class OutputEmbed:
         return (batch_size, seq_len, self.config.input_dim), self.config.dtype
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k, history_kv_len, history_cache_home):
+                cache_write_buf, i, j, k, history_kv_len, history_cache_home):
         donate = [False] * 4
         h, donate[0] = hidden.val, True
 
@@ -442,7 +442,7 @@ class SelfAttention:
         return (batch_size, seq_len, self.config.input_dim), self.config.dtype
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k, history_kv_len, history_cache_home):
+                cache_write_buf, i, j, k, history_kv_len, history_cache_home):
         n_head = self.config.n_head
 
         donate = [False] * 14
@@ -463,6 +463,12 @@ class SelfAttention:
             if history_kv_len == 0:
                 h, new_k_cache, new_v_cache = self.compute.mha(h, mask, w_q, b_q, w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head, donate, self.policy.compress_cache, self.policy.comp_cache_config)
             else:
+                location = f'inferencing {i+1}th token, {(j+1)/2}th selfAttention, {k+1}th batch'
+                dtype = str(history_cache_home.val[0].dtype)
+                # shape: (s, b * n_head, head_dim)
+                shape = str(history_cache_home.val[0].shape)
+                IOtrace(location=location, operation='load history kcache',src='disk(history_kv)', des=str(self.compute),shape=shape,dtype=dtype,acutal_len=history_kv_len)
+                IOtrace(location=location, operation='load history vcache',src='disk(history_kv)', des=str(self.compute),shape=shape,dtype=dtype,acutal_len=history_kv_len)
                 h, new_k_cache, new_v_cache = self.compute.mha_history(h, mask, w_q, b_q, w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head, donate, self.policy.compress_cache, self.policy.comp_cache_config, history_kv_len, history_cache_home)
             cache_write_buf.store((new_k_cache, new_v_cache))
         else:  # decoding
@@ -535,7 +541,7 @@ class MLP:
         return (batch_size, seq_len, self.config.input_dim), self.config.dtype
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k, history_kv_len, history_cache_home):
+                cache_write_buf, i, j, k, history_kv_len, history_cache_home):
         donate = [False] * 7
         h, donate[0] = hidden.val, True
 
@@ -586,7 +592,7 @@ class TransformerLayer:
         self.attention.store_cache(cache_home, cache_write_buf, i)
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
-                cache_write_buf, i, k, history_kv_len, history_cache_home):
+                cache_write_buf, i, j, k, history_kv_len, history_cache_home):
         if k == self.policy.num_gpu_batches - 1:
             read_buf1, read_buf2 = weight_read_buf.pop()
         else:
@@ -850,10 +856,15 @@ class OptLM:
         # Clear the weight_read_buf if it is the last gpu batch
         # Clear the cache_read_buf
         # Run layer computation
-        
+        timers("compute").reset()
+        timers("compute").start()
         self.layers[j].forward(self.hidden[i][j][k], self.cache_read_buf[j][k],
             self.weight_read_buf[j], self.attention_mask[k],
-            self.cache_write_buf[j][k], i, k, self.history_kv_len, self.cache_history_home[j][k])
+            self.cache_write_buf[j][k], i, j, k, self.history_kv_len, self.cache_history_home[j][k])
+        timers("compute").stop()
+        cost = timers("compute").costs
+        location = f'inferencing {i+1}th token, {j+1}th layer, {k+1}th batch'
+        IOtrace(location=location, operation='compute', time_cost=cost)
 
     def sync(self):
         self.env.disk.synchronize()
@@ -1312,7 +1323,7 @@ def run_flexllmgen(args):
           f"hidden size (prefill): {hidden_size/GB:.3f} GB")
 
     print("init weight...")
-    cache_shape = (prompt_len + gen_len, policy.gpu_batch_size * opt_config.n_head, opt_config.hidden_size // opt_config.n_head)
+    cache_shape = (prompt_len + gen_len - 1, policy.gpu_batch_size * opt_config.n_head, opt_config.hidden_size // opt_config.n_head)
     model = OptLM(opt_config, env, args.path, policy, history_disk, cache_shape)
     try:
         print("benchmark - generate")
@@ -1426,7 +1437,7 @@ def add_parser_arguments(parser):
     parser.add_argument("--overlap", type=str2bool, nargs='?',
         const=True, default=True)
 
-def IOtrace(location,operation,src=None,des=None,shape=None,dtype=None,size=None,time_cost=None):
+def IOtrace(location,operation,src=None,des=None,shape=None,dtype=None,size=None,acutal_len=None,time_cost=None):
     global log
     log_dict = {}
     log_dict['location'] = location
@@ -1442,6 +1453,8 @@ def IOtrace(location,operation,src=None,des=None,shape=None,dtype=None,size=None
         log_dict['des'] = des
         log_dict['shape'] = shape
         log_dict['dtype'] = dtype
+        if acutal_len != None:
+            log_dict['history_len'] = acutal_len
         # log_dict['size'] = size
     log.append(log_dict)
     return 
