@@ -1335,7 +1335,7 @@ def run_flexllmgen(args):
             for j in range(len(inputs[i])):
             # 对每一个q(j)进行处理
                 log.append({'q': j+1})
-                output_ids = model.generate([inputs[i][j]], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
+                output_ids = model.generate([inputs[i][j], inputs[i][j]], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
                 outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
                 show_str += f"q&a {j}: {outputs[0]}\n"
                 show_str += "-" * 70 + "\n"
@@ -1407,7 +1407,7 @@ def add_parser_arguments(parser):
         help="Cut generation length for fast debugging.")
     parser.add_argument("--debug-mode", type=str,
         choices=["fewer_batch", "breakdown"])
-    parser.add_argument("--gpu-batch-size", type=int, default=1)
+    parser.add_argument("--gpu-batch-size", type=int, default=2) # m
     parser.add_argument("--num-gpu-batches", type=int, default=1)
     parser.add_argument("--percent", nargs="+", type=int,
         default=[100, 0, 100, 0, 100, 0],
