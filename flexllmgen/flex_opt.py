@@ -3,6 +3,7 @@ Usage:
 python3 -m flexllmgen.flex_opt --model facebook/opt-1.3b --gpu-batch-size 32 --percent 100 0 100 0 100 0
 """
 
+import sys
 import json
 import argparse
 import dataclasses
@@ -172,7 +173,7 @@ class InputEmbed:
     def load_cache(self, cache_home, cache_read_buf, i):
         pass  # do nothing
 
-    def store_cache(self, cache_home, cache_write_buf, i, j, k):
+    def store_cache(self, cache_home, cache_write_buf, i, j, k, session_len):
         pass  # do nothing
 
     def input_act_shape_and_dtype(self, batch_size, seq_len):
@@ -240,7 +241,7 @@ class OutputEmbed:
     def load_cache(self, cache_home, cache_read_buf, i):
         pass  # do nothing
 
-    def store_cache(self, cache_home, cache_write_buf, i, j, k):
+    def store_cache(self, cache_home, cache_write_buf, i, j, k, session_len):
         pass  # do nothing
 
     def input_act_shape_and_dtype(self, batch_size, seq_len):
@@ -403,7 +404,7 @@ class SelfAttention:
         else:
             raise ValueError(f"Invalid path: {path}")
 
-    def store_cache(self, cache_home, cache_write_buf, i, j, k):
+    def store_cache(self, cache_home, cache_write_buf, i, j, k, session_len):
         # shape: (s, b * n_head, head_dim)
         k_home, v_home = cache_home.val
         src = str(cache_write_buf.val[0].device)
@@ -415,10 +416,8 @@ class SelfAttention:
             pos = self.task.prompt_len + i
             indices = (slice(pos - k_new.shape[0], pos),
                        slice(0, k_new.shape[1]))
-
         general_copy(k_home, indices, k_new, None)
         general_copy(v_home, indices, v_new, None)
-        location = f'inferencing {i+1}th token, {(j+1)/2}th selfAttention, {k+1}th batch'
         if isinstance(k_home.data, tuple):
             # 混合存储
             K_tensors = k_home.data[0]
@@ -428,15 +427,15 @@ class SelfAttention:
                 des = str(K_tensors[index].device)
                 shape = str(K_tensors[index].shape)
                 dtype = str(K_tensors[index].dtype)
-                IOtrace(location=location, operation='store kcache', src=src, des=des,  shape=shape, dtype=dtype)
-                IOtrace(location=location, operation='store vcache', src=src, des=des,  shape=shape, dtype=dtype)
+                IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='store kcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=session_len)
+                IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='store vcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=session_len)
         else:
             # cache全部存在某种设备上
             des = str(k_home.device)
             shape = str(k_home.shape)
             dtype = str(k_home.dtype)
-            IOtrace(location=location, operation='store kcache', src=src, des=des,  shape=shape, dtype=dtype)
-            IOtrace(location=location, operation='store vcache', src=src, des=des,  shape=shape, dtype=dtype)
+            IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='store kcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=session_len)
+            IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='store vcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=session_len)
 
     def input_act_shape_and_dtype(self, batch_size, seq_len):
         return (batch_size, seq_len, self.config.input_dim), self.config.dtype
@@ -463,12 +462,11 @@ class SelfAttention:
             if history_kv_len == 0:
                 h, new_k_cache, new_v_cache = self.compute.mha(h, mask, w_q, b_q, w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head, donate, self.policy.compress_cache, self.policy.comp_cache_config)
             else:
-                location = f'inferencing {i+1}th token, {(j+1)/2}th selfAttention, {k+1}th batch'
                 dtype = str(history_cache_home.val[0].dtype)
                 # shape: (s, b * n_head, head_dim)
                 shape = str(history_cache_home.val[0].shape)
-                IOtrace(location=location, operation='load history kcache',src='disk(history_kv)', des=str(self.compute),shape=shape,dtype=dtype,acutal_len=history_kv_len)
-                IOtrace(location=location, operation='load history vcache',src='disk(history_kv)', des=str(self.compute),shape=shape,dtype=dtype,acutal_len=history_kv_len)
+                IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='load history kcache',src='disk(history_kv)', des=str(self.compute),shape=shape,dtype=dtype,acutal_len=history_kv_len)
+                IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='load history vcache',src='disk(history_kv)', des=str(self.compute),shape=shape,dtype=dtype,acutal_len=history_kv_len)
                 h, new_k_cache, new_v_cache = self.compute.mha_history(h, mask, w_q, b_q, w_k, b_k, w_v, b_v, w_out, b_out, w_ln, b_ln, n_head, donate, self.policy.compress_cache, self.policy.comp_cache_config, history_kv_len, history_cache_home)
             cache_write_buf.store((new_k_cache, new_v_cache))
         else:  # decoding
@@ -534,7 +532,7 @@ class MLP:
     def load_cache(self, cache_home, cache_read_buf, i):
         pass  # do nothing
 
-    def store_cache(self, cache_home, cache_write_buf, i, j, k):
+    def store_cache(self, cache_home, cache_write_buf, i, j, k, session_len):
         pass  # do nothing
 
     def input_act_shape_and_dtype(self, batch_size, seq_len):
@@ -588,7 +586,7 @@ class TransformerLayer:
     def load_cache(self, cache_home, cache_read_buf, i):
         self.attention.load_cache(cache_home, cache_read_buf, i)
 
-    def store_cache(self, cache_home, cache_write_buf, i, j, k):
+    def store_cache(self, cache_home, cache_write_buf, i, j, k, session_len):
         self.attention.store_cache(cache_home, cache_write_buf, i)
 
     def forward(self, hidden, cache_read_buf, weight_read_buf, attention_mask,
@@ -620,6 +618,7 @@ class OptLM:
         self.num_gpu_batches = policy.num_gpu_batches
         self.history_disk = history_disk
         self.history_kv_len = 0
+        self.session_len = 0
 
         layers = []
         layers.append(InputEmbed(self.config, self.env, self.policy))
@@ -703,7 +702,6 @@ class OptLM:
         # Load from weight_home to weight_read_buf
         if overlap:
             with torch.cuda.stream(self.load_weight_stream):
-                location = f'inferencing {i+1}th token, {j+1}th layer, {k+1}th batch'
                 opration = 'load weight'
                 # 仅仅考虑从单一设备加载到单一设备
                 src_weight_list = self.weight_home[j].val
@@ -713,7 +711,7 @@ class OptLM:
                 for index in range(0, len(src_weight_list)):
                     shape = src_weight_list[index].shape
                     size += torch.prod(torch.tensor(shape)).item()
-                IOtrace(location=location, operation=opration, dtype=dtype, size=size)
+                IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation=opration, dtype=dtype, size=size)
         else:
             self.layers[j].load_weight(self.weight_home[j], self.weight_read_buf[j], k)
 
@@ -748,7 +746,6 @@ class OptLM:
                 self.layers[j].load_cache(self.cache_home[j][k], self.cache_read_buf[j][k], i)
                 if isinstance(self.layers[j], SelfAttention):
                     des = str(self.cache_read_buf[j][k].val[0][0].device)
-                    location = f'inferencing {i+1}th token, {(j+1)/2}th selfAttention, {k+1}th batch'
                     K = self.cache_home[j][k].val[0]
                     if isinstance(K.data, tuple):
                         # 混合存储
@@ -759,15 +756,15 @@ class OptLM:
                             src = str(K_tensors[index].device)
                             shape = str(K_tensors[index].shape)
                             dtype = str(K_tensors[index].dtype)
-                            IOtrace(location=location, operation='load kcache', src=src, des=des,  shape=shape, dtype=dtype)
-                            IOtrace(location=location, operation='load vcache', src=src, des=des,  shape=shape, dtype=dtype)
+                            IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='load kcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=self.session_len+i)
+                            IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='load vcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=self.session_len+i)
                     else:
                         # 从单一的设备加载cache
                         src = str(K.device)
                         shape = str(K.shape)
                         dtype = str(K.dtype)
-                        IOtrace(location=location, operation='load kcache', src=src, des=des,  shape=shape, dtype=dtype)
-                        IOtrace(location=location, operation='load vcache', src=src, des=des,  shape=shape, dtype=dtype)
+                        IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='load kcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=self.session_len+i)
+                        IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='load vcache', src=src, des=des,  shape=shape, dtype=dtype, session_len=self.session_len+i)
         else:
             self.layers[j].load_cache(self.cache_home[j][k], self.cache_read_buf[j][k], i)
 
@@ -785,9 +782,9 @@ class OptLM:
         # Delete cache_write_buf
         if overlap:
             with torch.cuda.stream(self.store_cache_stream):
-                self.layers[j].store_cache(self.cache_home[j][k], self.cache_write_buf[j][k], i, j, k)
+                self.layers[j].store_cache(self.cache_home[j][k], self.cache_write_buf[j][k], i, j, k, self.session_len+i)
         else:
-            self.layers[j].store_cache(self.cache_home[j][k], self.cache_write_buf[j][k], i, j, k)
+            self.layers[j].store_cache(self.cache_home[j][k], self.cache_write_buf[j][k], i, j, k, self.session_len+i)
 
     def delete_cache(self, j, k):
         v = self.cache_home[j][k].pop()
@@ -863,8 +860,7 @@ class OptLM:
             self.cache_write_buf[j][k], i, j, k, self.history_kv_len, self.cache_history_home[j][k])
         timers("compute").stop()
         cost = timers("compute").costs
-        location = f'inferencing {i+1}th token, {j+1}th layer, {k+1}th batch'
-        IOtrace(location=location, operation='compute', time_cost=cost)
+        IOtrace(token_id=i+1,layer_id=j+1,batch_id=k+1, operation='compute', time_cost=cost)
 
     def sync(self):
         self.env.disk.synchronize()
@@ -922,7 +918,8 @@ class OptLM:
         overlap = self.policy.overlap
         prompt_len, gen_len = task.prompt_len, task.gen_len
         self.execute_gen_len = task.cut_gen_len if task.cut_gen_len else task.gen_len
-
+        # 统计此次q的实际长度
+        self.session_len += sum(1 for token in inputs[0] if token != 1)
         # Output token ids
         self.output_ids = np.full((len(task.inputs), prompt_len + gen_len),
             self.config.pad_token_id, dtype=np.int32)
@@ -990,6 +987,7 @@ class OptLM:
         assert len(self.output_ids[0]) == 32 + len(inputs[0])
         # 统计output_ids[0]中非1的tokens个数, 每次推理的最后一个token的kvcache舍弃
         self.history_kv_len += sum(1 for token in self.output_ids[0] if token != 1) - 1
+        self.session_len += 32 
         return self.output_ids
     
     def save_cache(self, j, k):
@@ -1330,17 +1328,31 @@ def run_flexllmgen(args):
         timers("generate").reset()
         # 对每一个session(i)进行处理
         for i in range(len(inputs)):
+            global log
+            global num_q_every_session
+            log = []
             log.append({'session': i+1})
+            log[0]['num_q'] = len(inputs[i])
+            num_q_every_session[f'session {i+1} q num'] = len(inputs[i])
             show_str = f"session {i}:\n"
             for j in range(len(inputs[i])):
             # 对每一个q(j)进行处理
-                log.append({'q': j+1})
-                output_ids = model.generate([inputs[i][j], inputs[i][j]], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
+                global log_q
+                log_q = {'q': j+1}
+                log_q['I/O info'] = []
+                output_ids = model.generate([inputs[i][j]], max_new_tokens=args.gen_len,debug_mode=args.debug_mode, cut_gen_len=cut_gen_len, verbose=args.verbose)
                 outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
                 show_str += f"q&a {j}: {outputs[0]}\n"
                 show_str += "-" * 70 + "\n"
+                log.append(log_q)
             print(show_str)
-            model.history_kv_len = 0     
+            model.session_len = 0
+            model.history_kv_len = 0 
+            with open(f'session {i+1} trace.json', 'a+') as f:
+                f.truncate(0)
+            with open(f'session {i+1} trace.json', 'a') as f:
+                json.dump(log, f, indent=4, ensure_ascii=False)
+                f.write('\n')    
         costs = timers("generate").costs
         history_disk.synchronize()
         for j in range(model.num_layers):
@@ -1407,7 +1419,7 @@ def add_parser_arguments(parser):
         help="Cut generation length for fast debugging.")
     parser.add_argument("--debug-mode", type=str,
         choices=["fewer_batch", "breakdown"])
-    parser.add_argument("--gpu-batch-size", type=int, default=2) # m
+    parser.add_argument("--gpu-batch-size", type=int, default=1) # m
     parser.add_argument("--num-gpu-batches", type=int, default=1)
     parser.add_argument("--percent", nargs="+", type=int,
         default=[100, 0, 100, 0, 100, 0],
@@ -1437,17 +1449,27 @@ def add_parser_arguments(parser):
     parser.add_argument("--overlap", type=str2bool, nargs='?',
         const=True, default=True)
 
-def IOtrace(location,operation,src=None,des=None,shape=None,dtype=None,size=None,acutal_len=None,time_cost=None):
-    global log
+def IOtrace(token_id,layer_id,batch_id,operation,src=None,des=None,shape=None,dtype=None,size=None,acutal_len=None,time_cost=None,session_len=None):
+    global log_q
     log_dict = {}
-    log_dict['location'] = location
+    log_dict['Gen_token_id'] = token_id
+    log_dict['layer_id'] = layer_id
+    log_dict['batch_id'] = batch_id
+    if layer_id == 1:
+        log_dict['layer_name'] = 'InputEmbed'
+    elif layer_id == 50:
+        log_dict['layer_name'] = 'OutputEmbed'
+    elif layer_id%2 == 0:
+        log_dict['layer_name'] = f'{(layer_id)/2}th selfattn'
+    else:
+        log_dict['layer_name'] = f'{(layer_id-1)/2}th mlp'
     log_dict['opration'] = operation
     if operation == 'load weight':
         log_dict['size'] = size
         log_dict['dtype'] = dtype
     elif operation == 'compute':
         # 默认在gpu上进行
-        log_dict['time_cost(s)'] = time_cost
+        log_dict['time_cost(s)'] = round(time_cost[0],6)
     else:
         log_dict['src'] = src
         log_dict['des'] = des
@@ -1455,12 +1477,18 @@ def IOtrace(location,operation,src=None,des=None,shape=None,dtype=None,size=None
         log_dict['dtype'] = dtype
         if acutal_len != None:
             log_dict['history_len'] = acutal_len
+        if session_len != None:
+            log_dict['session_len'] = session_len
         # log_dict['size'] = size
-    log.append(log_dict)
+    log_q['I/O info'].append(log_dict)
     return 
 
 # 维护一个日志，记录I/O信息
 log = []
+# 维护一个q的日志，记录q的I/O信息
+log_q = {}
+# 保存每个session所含的q的数量
+num_q_every_session = {}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -1470,8 +1498,8 @@ if __name__ == "__main__":
     assert len(args.percent) == 6
 
     run_flexllmgen(args)
-    with open('IOtrace.json', 'a+') as f:
+    with open(f'q_num_for_every_session.json', 'a+') as f:
         f.truncate(0)
-    with open('IOtrace.json', 'a') as f:
-        json.dump(log, f, indent=4, ensure_ascii=False)
+    with open(f'q_num_for_every_session.json', 'a') as f:
+        json.dump(num_q_every_session, f, indent=4, ensure_ascii=False)
         f.write('\n')

@@ -253,7 +253,7 @@ class TorchDevice:
 
         # 统计mask中True的个数,也即此次q的tokens数量
         true_counts = torch.sum(mask, dim=1)
-        true_counts = true_counts[0]
+        # true_counts = true_counts[0]
         # 将历史tokens的位置也置为True,用来计算positions
         mask[:,-true_counts-history_kv_len:-true_counts] = True
         # pos embedding
