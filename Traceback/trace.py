@@ -4,6 +4,17 @@ import json
 import time
 import numpy as np
 import torch
+import random
+
+Max_KVcache_size=[543,32,64] # KVcache_data具体大小要根据模型参数手动指定来通过检查,否则assert
+kvpath="./kvcache/"
+# kvpath="/mnt/md0/" #需要先挂载RAID至该目录
+json_metapath="../Tracefile/q_num_for_every_session.json"
+json_path="../Tracefile/"
+
+def timePrint(strs):
+    print(strs) # 注释此行将不打印每步的延迟
+    pass
 
 def delayMicrosecond(t):    # 微秒级延时函数
     start,end=0,0           # 声明变量
@@ -12,37 +23,43 @@ def delayMicrosecond(t):    # 微秒级延时函数
     while end-start<t:  # 循环至时间差值大于或等于设定值时
         end=time.time()     # 记录结束时间
 
-
-# KVcache_data具体大小要根据模型参数手动指定,否则assert
-Max_KVcache_size=[543,32,64]
-# KVcache_data=torch.ones(Max_KVcache_size,dtype=torch.float16,device="cpu")
-# KVcache_data=torch.zeros([4096,32,64],dtype=torch.float16,device="cpu")
-# temp_data=KVcache_data[:100,:,:] #预热
-
-# kvpath="./"
-kvpath="/mnt/md0/" #需要先挂载RAID至该目录
-
-# jsonpath="../IOtrace.json"
-jsonpath="./all_dram.json"
+finish_time=0
+IO_time=0
 
 stored_kcache_num=0
 stored_vcache_num=0
 
-with open(jsonpath,'r',encoding='utf8')as fp:
+session_nums=0 #共有几个session
+session_left_qnums=[] # 每个session还剩几个q没处理
+session_active=[] # 还没处理完的session的id集合
+
+with open(json_metapath,'r',encoding='utf8')as fp:
     json_datas = json.load(fp)
-    all_len=len(json_datas)
-    
-    for json_data in json_datas[:1000]:
-        if len(json_data) ==1 and str(json_data)[2:9] == "session":
-            print("get session")
-            stored_kcache_num=0
-            stored_vcache_num=0
-            # todo：若后续实现打断重启的多轮对话，此处应改变stored_kcache_num，和stored_vcache_num
-            # todo
-        elif len(json_data) ==1 and str(json_data)[2:3] == "q":
-            print("get q")
-            # todo：若后续实现打断重启的多轮对话，此处应改变stored_kcache_num，和stored_vcache_num
-        else:
+    session_nums=len(json_datas)
+    session_index=0
+    for _ , qnum in json_datas.items():
+        session_left_qnums.append(int(qnum))
+        session_active.append(session_index)
+        session_index+=1
+print(session_left_qnums)
+print(session_active)
+
+while len(session_active) != 0:
+    session_active_index = random.randint(0,len(session_active)-1)
+    session_id = session_active[session_active_index]
+    print("session_id="+str(session_id)+"    session_left_qnums="+str(session_left_qnums))
+    filepath=json_path+"session "+str(session_id)+" trace.json"
+
+    with open(filepath,'r',encoding='utf8')as fp:
+        json_datas = json.load(fp)
+        num_q=int(json_datas[0]["num_q"])
+        qid = num_q-session_left_qnums[session_id] + 1 
+        assert qid==json_datas[qid]["q"]
+        qinfo=json_datas[qid]["I/O info"]
+        
+        for json_data in qinfo:
+            nameHead="S"+str(session_id)+"L"+str(json_data["layer_id"])
+
             if json_data["opration"] == "load weight":
             # 当前weight默认都在GPU中，不做卸载
                 # if json_data["dtype"] == "torch.float16":
@@ -50,69 +67,67 @@ with open(jsonpath,'r',encoding='utf8')as fp:
                 # else:
                 #     print("【WARNING】data_size unknown")
                 pass
+
             elif json_data["opration"] == "compute":
-                sleep_time = int(float(json_data["time_cost(s)"][0])*1000000)
+                sleep_time = int(float(json_data["time_cost(s)"])*1000000)
                 time_start=time.time() 
                 delayMicrosecond(sleep_time)
-                time_end=time.time() 
-                print("\n  compute_time="+str(sleep_time)+" -- "+str(int((time_end-time_start)*1000000)))
+                time_interval=int((time.time() - time_start)*1000000)
+                # timePrint("\n  compute_time="+str(sleep_time)+" -- "+str(time_interval))
+                finish_time+=time_interval
 
-            elif json_data["opration"] == "store kcache":
+            elif json_data["opration"] == "store kcache" or json_data["opration"] == "store vcache":
                 assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
-                print("")
-
                 token_len=int(json_data["session_len"])
                 time_start=time.time() 
                 data=torch.ones([token_len,Max_KVcache_size[1],Max_KVcache_size[2]],dtype=torch.float16,device="cpu")
                 data_malloc_time=time.time() - time_start
-                print("  kdata_malloc_time="+str(int(data_malloc_time*1000000)))
+                # timePrint("  data_malloc_time="+str(int(data_malloc_time*1000000)))
 
+                pt_name = kvpath+nameHead+str(json_data["opration"][-6:])+".pt"
                 time_start=time.time() 
-                torch.save(data, kvpath+"kcache.pt")
-                data_save_time=time.time() - time_start
-                print("  kdata_save_time="+str(int(data_save_time*1000000)))
+                torch.save(data, pt_name)
+                time_interval=int((time.time() - time_start)*1000000)
+                # timePrint("  "+str(json_data["opration"][-6:-5])+"_saveTime="+str(time_interval))
+                finish_time+=time_interval
+                IO_time+=time_interval
 
-            elif json_data["opration"] == "store vcache":
+            elif json_data["opration"] == "load kcache" or json_data["opration"] == "load vcache":
                 assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
-                print("")
-
-                token_len=int(json_data["session_len"])
+                pt_name = kvpath+nameHead+str(json_data["opration"][-6:])+".pt"
                 time_start=time.time() 
-                data=torch.ones([token_len,Max_KVcache_size[1],Max_KVcache_size[2]],dtype=torch.float16,device="cpu")
-                data_malloc_time=time.time() - time_start
-                print("  vdata_malloc_time="+str(int(data_malloc_time*1000000)))
+                data = torch.load(pt_name, map_location=lambda storage, loc: storage,weights_only=True)
+                time_interval=int((time.time() - time_start)*1000000)
+                # timePrint("  "+str(json_data["opration"][-6:-5])+"_loadTime="+str(time_interval))
+                finish_time+=time_interval
+                IO_time+=time_interval
 
+            elif json_data["opration"] == "load history kcache" or json_data["opration"] == "load history vcache":
+                assert str(Max_KVcache_size)[1:-1] == str(json_data["shape"][1:-1])
+                pt_name = kvpath+nameHead+str(json_data["opration"][-6:])+".pt"
                 time_start=time.time() 
-                torch.save(data, kvpath+"vcache.pt")
-                data_save_time=time.time() - time_start
-                print("  vdata_save_time="+str(int(data_save_time*1000000)))
-
-            elif json_data["opration"] == "load kcache":
-                assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
-                print("")
-
-                time_start=time.time() 
-                data = torch.load(kvpath+"kcache.pt", map_location=lambda storage, loc: storage,weights_only=True)
-                data_save_time=time.time() - time_start
-                print("  kdata_load_time="+str(int(data_save_time*1000000)))
-
-
-            elif json_data["opration"] == "load vcache":
-                assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
-                print("")
-
-                time_start=time.time() 
-                data = torch.load(kvpath+"vcache.pt", map_location=lambda storage, loc: storage,weights_only=True)
-                data_save_time=time.time() - time_start
-                print("  vdata_load_time="+str(int(data_save_time*1000000)))
+                data = torch.load(pt_name, map_location=lambda storage, loc: storage,weights_only=True)
+                time_interval=int((time.time() - time_start)*1000000)
+                # timePrint("  his_"+str(json_data["opration"][-6:-5])+"_load_time="+str(time_interval))
+                finish_time+=time_interval
+                IO_time+=time_interval
 
             else:
+                print("WARNING"+str(session_id)+"-"+str(qid)+":\n"+str(json_data))
                 assert 0
-                pass
-        
 
-# todo：save只需增量，load是全量
-# todo: 没有模拟出flexgen的IO方式
-# todo: 没有模拟多GPU处理场景
-# todo: 没有模拟出多有限KVcache预算下，KVcahe删减的场景
-# todo：暂不支持打断重启对话
+
+    session_left_qnums[session_id]-=1
+    if(session_left_qnums[session_id]==0):
+        session_active.pop(session_active_index)
+        print("session_active changed:" + str(session_active) + "    deactivate:"+str(session_id))
+
+print("finish_time:"+str(finish_time/1000)+" ms")
+print("IO_time:"+str(IO_time/1000)+"ms")
+
+# # todo：save只需增量，load是全量
+# # todo: 没有模拟出flexgen的IO方式（异步IO）
+# # todo: 没有模拟多GPU处理场景
+# # todo: 没有模拟出多有限KVcache预算下，KVcahe删减的场景
+# # todo: data的malloc时间没有消除
+# # todo：没有考虑tensor从内存拷贝到GPU的时间
