@@ -32,7 +32,7 @@ W_time=0
 session_nums=0 #共有几个session
 session_left_qnums=[] # 每个session还剩几个q没处理
 session_active=[] # 还没处理完的session的id集合
-session_stored_tokens=[] # 还没处理完的session的id集合
+session_stored_tokens=[] # 已存储完KVcache的token的id集合
 
 with open(json_metapath,'r',encoding='utf8')as fp:
     json_datas = json.load(fp)
@@ -138,5 +138,4 @@ print("W_time:"+str((W_time)/1000)+"ms")
 # # todo: 没有模拟出flexgen的IO方式（异步IO）
 # # todo: 没有模拟多GPU处理场景
 # # todo: 没有模拟出多有限KVcache预算下，KVcahe删减的场景
-# # todo: data的malloc时间没有消除
 # # todo：没有考虑tensor从内存拷贝到GPU的时间
