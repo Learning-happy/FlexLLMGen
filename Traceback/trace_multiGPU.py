@@ -59,6 +59,8 @@ def foward_trace(recv_queue:Queue, recv_lock,
         session_id=recv[0]
         q_id=recv[1]
         stored_tokens=recv[2]
+        stored_tokens_k=stored_tokens
+        stored_tokens_v=stored_tokens
         session_active_index=recv[3]
         filepath=json_path+"session "+str(session_id)+" trace.json"
         
@@ -94,8 +96,13 @@ def foward_trace(recv_queue:Queue, recv_lock,
                         # timePrint("  "+str(json_data["opration"][-6:-5])+"_saveTime="+str(time_interval))
                         finish_time+=time_interval
                         W_time+=time_interval
-                    if(json_data["layer_id"] == MaxAttLayerId): # store增量，#todo：异步IO适配
-                        stored_tokens=token_len
+                    if json_data["layer_id"] == MaxAttLayerId: # store增量，#todo：异步IO适配
+                        if str(json_data["opration"][-6:]) == "k":
+                            stored_tokens_k=token_len
+                        if str(json_data["opration"][-6:]) == "v":
+                            stored_tokens_v=token_len
+                        if stored_tokens_k==token_len and stored_tokens_v==token_len:
+                            stored_tokens=token_len
 
                 elif json_data["opration"] == "load kcache" or json_data["opration"] == "load vcache":
                     assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
@@ -257,7 +264,9 @@ def run__process():
 
   
 if __name__ =='__main__':
+    stime=time.time()
     run__process()  # 正确做法：主线程只能写在 if内部
+    print("run_time",int((time.time() - stime)*1000)," ms")
 
 
 # # todo: 没有模拟出flexgen的IO方式（异步IO）
