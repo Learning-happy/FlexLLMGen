@@ -6,8 +6,8 @@ import random
 from multiprocessing import Process,Pool,Pipe,Queue,Manager
 from multiprocessing import Lock as mlock
 
-GPU_NUM = 2
-PCIe_BW = 16 # GB/S
+GPU_NUM = 1
+IO_Procsss_num = 1
 
 Max_TOKENS = 10 #最大KVcahe预算，当前实现了滑动窗口法
 Max_KVcache_size=[543,32,64] # KVcache_data具体大小要根据模型参数手动指定来通过检查,否则assert
@@ -26,54 +26,100 @@ def delayMicrosecond(t):    # 微秒级延时函数
     while end-start<t:  # 循环至时间差值大于或等于设定值时
         end=time.time()     # 记录结束时间
 
-def aio_trace(io_submit_queue:Queue,io_submit_lock,
-              io_finish_queue:Queue,io_finish_lock):
-    
+def do_io(submit_queue:Queue, finish_queue:Queue,submit_lock,finish_lock):
     saveCache = oneCache
     listening1=True
     while True: # 持续处理，直到父进程通知其结束
         listening2=True
         while(listening2): # 持续接听，直到获取新任务
-            io_submit_lock.acquire()
-            if not io_submit_queue.empty():
-                recv = io_submit_queue.get()
+            submit_lock.acquire()
+            if not submit_queue.empty() :
+                recv = submit_queue.get()
                 if len(recv) == 1:
                     assert recv[0] == -1
                     listening1=False
                 listening2=False
+                assert len(recv) == 2
+            submit_lock.release()
+            delayMicrosecond(100)
+
+        if listening1 == False:
+            break
+        
+        # print("\nDEBUG-p1 "," submit_queue.qsize()=",submit_queue.qsize()," finish_queue.qsize()=",finish_queue.qsize())
+        # IO submit 格式：["R"或者"W", 文件名]
+        if recv[0] == "R":
+            data = torch.load(recv[1], map_location=lambda storage, loc: storage,weights_only=True)
+        if recv[0] == "W":
+            torch.save(saveCache, recv[1])
+        finish_lock.acquire()
+        finish_queue.put([1])
+        finish_lock.release()
+        # print("DEBUG-p2 "," submit_queue.qsize()=",submit_queue.qsize()," finish_queue.qsize()=",finish_queue.qsize())
+
+def aio_trace(io_submit_queue:Queue,io_submit_lock, io_finish_queue:Queue,io_finish_lock,
+              submit_queue:Queue, finish_queue:Queue,submit_lock,finish_lock):
+    
+    saveCache = oneCache
+    listening1=True
+    IO_id = 0
+
+    finish_lock.acquire()
+    while not finish_queue.empty():
+        finish_queue.get()
+    finish_lock.release()
+
+    while True: # 持续处理，直到父进程通知其结束
+        listening2=True
+        while(listening2): # 持续接听，直到获取新任务
+            io_submit_lock.acquire()
+            if io_submit_queue.empty() != True:
+                recv = io_submit_queue.get()
+                if len(recv) == 1:
+                    assert recv[0] == -1
+                    listening1=False
+                    for _ in range(IO_Procsss_num):
+                        submit_lock.acquire()
+                        submit_queue.put([-1,])
+                        submit_lock.release()
+                listening2=False
             io_submit_lock.release()
-            delayMicrosecond(50)
+            delayMicrosecond(100)
 
         if listening1 == False:
             break
 
         # 执行 IO
         # IO submit 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
-        all_copy_latency = 0
-        copy_latency = (saveCache.numel() * saveCache.element_size()) / (PCIe_BW * 1000000000) * 1000000 # 以微妙为单位
+        IO_id += 1
         time_start=time.time()
+        submit_lock.acquire()
         for filepath in recv[4]:
-            # print("do io :",filepath)
-            if recv[0] == "R":
-                data = torch.load(filepath, map_location=lambda storage, loc: storage,weights_only=True)
-            if recv[0] == "W":
-                torch.save(saveCache, filepath)
-            delayMicrosecond(copy_latency)
-            all_copy_latency += copy_latency
+            submit_queue.put([recv[0],filepath])
+        submit_lock.release()
+        
+        while finish_queue.qsize() < len(recv[4]):
+            delayMicrosecond(100)
+            pass
+        finish_lock.acquire()
+        while not finish_queue.empty():
+            finish_queue.get()
+        finish_lock.release()
+
+
         time_interval=int((time.time() - time_start)*1000000)
 
         # 返回结果
         io_finish_lock.acquire()
         # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, IO时间 ]
-        io_finish_queue.put([recv[0],recv[1],recv[2],recv[3],time_interval,all_copy_latency])
+        io_finish_queue.put([recv[0],recv[1],recv[2],recv[3],time_interval])
         io_finish_lock.release()
 
-def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,R_time:int,W_time:int,CP_time:int):
+def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,R_time:int,W_time:int):
     io_finish_lock.acquire()
     tp_R_time = R_time
     tp_W_time = W_time
-    tp_cp_time = CP_time
-    while not io_finish_queue.empty():
+    while io_finish_queue.empty() != True:
         # IO finish 格式：["R"或者"W", Gen_token_id, layer_id, IO时间 ]
         recv = io_finish_queue.get()
         index = 0
@@ -84,11 +130,10 @@ def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,R_time:int,
                     tp_R_time += recv[4]
                 if recv[0] == "W":
                     tp_W_time += recv[4]
-                tp_cp_time += recv[5]
                 break
             index+=1
     io_finish_lock.release()
-    return io_submiting,tp_R_time,tp_W_time,tp_cp_time
+    return io_submiting,tp_R_time,tp_W_time
 
 def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pid:int,
                  io_submit_queue:Queue, io_submit_lock, io_finish_queue:Queue, io_finish_lock):
@@ -99,7 +144,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
         listening2=True
         while(listening2): # 持续接听，直到获取新任务
             recv_lock.acquire()
-            if not recv_queue.empty():
+            if recv_queue.empty() != True:
                 recv = recv_queue.get() # List:[session_id,q_id,stored_tokens]
                 if len(recv) == 1:
                     assert recv[0] == -1
@@ -111,16 +156,15 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                     send_queue.put(["s",pid,recv[0]])
                 listening2=False
             recv_lock.release()
+            delayMicrosecond(200)
 
         if listening1 == False:
             # print("Break pid="+str(pid))
             break
-        
-        stime = time.time()
+
         comp_time=0
         R_time=0
         W_time=0
-        CP_time=0
 
         session_id=recv[0]
         q_id=recv[1]
@@ -137,8 +181,9 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
             qinfo=json_datas[q_id]["I/O info"]
             
             for json_data in qinfo:
+                
                 # 处理一遍 IO结果
-                io_submiting, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time, CP_time)
+                io_submiting, R_time, W_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time)
                 nameHead="S"+str(session_id)+"L"+str(json_data["layer_id"])
 
                 if json_data["opration"] == "load weight":
@@ -151,7 +196,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                         wait = True
                         while wait:
                             wait = False
-                            io_submiting, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time, CP_time)
+                            io_submiting, R_time, W_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time)
                             for item in io_submiting:
                                 if item[2] == json_data["Gen_token_id"] and item[3] == json_data["layer_id"]: # KVcache预取还没完成
                                     wait = True
@@ -208,18 +253,16 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                     assert 0
 
         while len(io_submiting) != 0:
-            io_submiting, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time, CP_time)
+            io_submiting, R_time, W_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time)
 
-        print("  GPU=",pid," S_id=",session_id," Q_id=",q_id,end="  ")
-        print("all:",int((time.time() - stime)*1000),"ms",end="  ")
-        print("cpu:",int(comp_time/1000),"ms",end="  ")
-        print("IO:",int(((R_time+W_time+CP_time)/1000)),"ms",end=" ")
-        print("(R:",int((R_time)/1000),"ms",end="  ")
-        print("W:",int((W_time)/1000),"ms",end="  ")
-        print("CP:",int((CP_time)/1000),"ms)")
+        print("\nGPU="+str(pid)+" S_id="+str(session_id)+" Q_id="+str(q_id),end="  ")
+        print("cpu_time:"+str(comp_time/1000)+" ms",end="  ")
+        print("IO_time:"+str((R_time+W_time)/1000)+"ms",end="  ")
+        print("R_time:"+str((R_time)/1000)+"ms",end="  ")
+        print("W_time:"+str((W_time)/1000)+"ms")
 
         send_lock.acquire()
-        send_queue.put(["e",session_id,pid,stored_tokens,comp_time,R_time,W_time,CP_time])
+        send_queue.put(["e",session_id,pid,stored_tokens,comp_time,R_time,W_time])
         send_lock.release()
 
 def run__process():
@@ -234,21 +277,31 @@ def run__process():
     io_submit_lock  = [manager.Lock()   for _ in range(GPU_NUM)]
     io_finish_queue = [manager.Queue()  for _ in range(GPU_NUM)]
     io_finish_lock  = [manager.Lock()   for _ in range(GPU_NUM)]
+
+    submit_queue = [manager.Queue()   for _ in range(GPU_NUM)]
+    finish_queue = [manager.Queue()   for _ in range(GPU_NUM)]
+    submit_lock  = [manager.Lock()   for _ in range(GPU_NUM)]
+    finish_lock  = [manager.Lock()   for _ in range(GPU_NUM)]
+
     my_process      = []
     my_process_io   = []
+    IO_process      = []
+
     for i in range(GPU_NUM):
-        my_process.append(Process(target=foward_trace, args=(send_queue,send_lock,recv_queue,recv_lock,i,
-                                                             io_submit_queue[i],io_submit_lock[i],io_finish_queue[i],io_finish_lock[i])))
-        my_process_io.append(Process(target=aio_trace, args=(io_submit_queue[i],io_submit_lock[i],io_finish_queue[i],io_finish_lock[i])))
+        my_process.append(Process(target=foward_trace, args=(send_queue,send_lock,recv_queue,recv_lock,i, io_submit_queue[i],io_submit_lock[i],io_finish_queue[i],io_finish_lock[i])))
+        my_process_io.append(Process(target=aio_trace, args=(io_submit_queue[i],io_submit_lock[i],io_finish_queue[i],io_finish_lock[i],
+                                                             submit_queue[i],finish_queue[i],submit_lock[i],finish_lock[i] )))
+        IO_process.append([Process(target=do_io, args=(submit_queue[i],finish_queue[i],submit_lock[i],finish_lock[i])) for _ in range(IO_Procsss_num)])
     
-    [p_io.start() for p_io in my_process_io]
     [p.start() for p in my_process]
+    [p_io.start() for p_io in my_process_io]
+    for process in IO_process:
+        [p_io.start() for p_io in process]
 
     # 时间统计初始化
     all_comp_time=0
     all_R_time=0
     all_W_time=0
-    all_CP_time=0
 
     # 任务分发数据结构初始化
     session_nums=0 #共有几个session
@@ -303,7 +356,7 @@ def run__process():
                     assert(0)
 
         while True: # 仅当send_queue中的任务被取完时，才会break出循环（见循环体的最后），派发新任务至send_queue
-            while not recv_queue.empty() : # 子进程反馈信息优先处理，且必须处理完
+            while recv_queue.empty() != True: # 子进程反馈信息优先处理，且必须处理完
                 recv_lock.acquire()
                 recv_list = recv_queue.get()
                 recv_lock.release()
@@ -317,7 +370,6 @@ def run__process():
                     all_comp_time+=recv_list[4]
                     all_R_time+=recv_list[5]
                     all_W_time+=recv_list[6]
-                    all_CP_time+=recv_list[7]
 
                     session_processing[tmp_session_id]=False
                     session_left_qnums[tmp_session_id]-=1
@@ -342,23 +394,27 @@ def run__process():
             session_processing[session_id]=True
             print("public: s_id="+str(session_id)+"  session_left_qnums="+str(session_left_qnums))
 
-    print("\nCPU:",int(all_comp_time/1000),"ms",end="  ")
-    print("IO:",int((all_R_time+all_W_time+all_CP_time)/1000),"ms",end=" ")
-    print("(R:",int((all_R_time)/1000),"ms",end=" ")
-    print("W:",int((all_W_time)/1000),"ms",end=" ")
-    print("CP:",int((all_CP_time)/1000),"ms)")
-    print("ALL run_time",int((time.time() - stime)*1000),"ms")
+
+    print("\n\nCPU_time:"+str(all_comp_time/1000)+" ms",end="  ")
+    print("IO_time:"+str((all_R_time+all_W_time)/1000)+"ms",end=" ")
+    print("(R_time:"+str((all_R_time)/1000)+"ms",end="  ")
+    print("W_time:"+str((all_W_time)/1000)+"ms)")
+    print("\nALL run_time",int((time.time() - stime)*1000)," ms")
     
     send_lock.acquire()
     for _ in range(GPU_NUM): # 结束子进程
         send_queue.put([-1])
     send_lock.release()
+    for process in IO_process:
+        [p_io.join() for p_io in process]
     [p.join() for p in my_process_io]
     [p.join() for p in my_process]
+
   
 if __name__ =='__main__':
     run__process()  # 正确做法：主线程只能写在 if内部
 
 
 # # todo: 没有完全模拟出flexgen的IO方式（memmap）
+# # todo：没有考虑tensor从内存拷贝到GPU的时间
 # # todo：设定了静态的模型参数，不能自动读取模型元数据
