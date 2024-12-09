@@ -5,9 +5,11 @@ import torch
 import random
 from multiprocessing import Process,Pool,Pipe,Queue,Manager
 from multiprocessing import Lock as mlock
+from concurrent.futures import ThreadPoolExecutor
 
 GPU_NUM = 2
 PCIE_BW = 16 # GB/S
+IO_THREAD_PER_LLM = 4
 
 Max_TOKENS = 10 #最大KVcahe预算，当前实现了滑动窗口法
 Max_KVcache_size=[543,32,64] # KVcache_data具体大小要根据模型参数手动指定来通过检查,否则assert
@@ -26,47 +28,57 @@ def delayMicrosecond(t):    # 微秒级延时函数
     while end-start<t:  # 循环至时间差值大于或等于设定值时
         end=time.time()     # 记录结束时间
 
+def aio_thread_func(iotype:str, filepath:str):
+    saveCache = oneCache
+    data=[]
+    if iotype == "R":
+        data = torch.load(filepath, map_location=lambda storage, loc: storage,weights_only=True)
+    if iotype == "W":
+        torch.save(saveCache, filepath)
+    return data
+
 def aio_trace(io_submit_queue:Queue,io_submit_lock,
               io_finish_queue:Queue,io_finish_lock):
     
     saveCache = oneCache
     listening1=True
-    while True: # 持续处理，直到父进程通知其结束
-        listening2=True
-        while(listening2): # 持续接听，直到获取新任务
-            io_submit_lock.acquire()
-            if not io_submit_queue.empty():
-                recv = io_submit_queue.get()
-                if len(recv) == 1:
-                    assert recv[0] == -1
-                    listening1=False
-                listening2=False
-            io_submit_lock.release()
-            delayMicrosecond(50)
+    with ThreadPoolExecutor(max_workers=IO_THREAD_PER_LLM) as executor:
+        while True: # 持续处理，直到父进程通知其结束
+            listening2=True
+            while(listening2): # 持续接听，直到获取新任务
+                io_submit_lock.acquire()
+                if not io_submit_queue.empty():
+                    recv = io_submit_queue.get()
+                    if len(recv) == 1:
+                        assert recv[0] == -1
+                        listening1=False
+                    listening2=False
+                io_submit_lock.release()
+                delayMicrosecond(50)
 
-        if listening1 == False:
-            break
+            if listening1 == False:
+                break
 
-        # 执行 IO
-        # IO submit 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
-        all_copy_latency = 0
-        copy_latency = (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
-        time_start=time.time()
-        for filepath in recv[4]:
-            # print("do io :",filepath)
-            if recv[0] == "R":
-                data = torch.load(filepath, map_location=lambda storage, loc: storage,weights_only=True)
-            if recv[0] == "W":
-                torch.save(saveCache, filepath)
-            delayMicrosecond(copy_latency)
-            all_copy_latency += copy_latency
-        time_interval=int((time.time() - time_start)*1000000)
+            # 执行 IO
+            # IO submit 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
+            all_copy_latency = 0
+            copy_latency = (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
+            time_start=time.time()
+            future_to_filepath = {executor.submit(aio_thread_func, recv[0],fp): fp for fp in recv[4]}
+            for future in future_to_filepath:
+                try:
+                    future.result()
+                    delayMicrosecond(copy_latency)
+                    all_copy_latency += copy_latency
+                except Exception as exc:
+                    print(f"Failed to save to {future_to_filepath[future]}: {exc}")
+            time_interval=int((time.time() - time_start)*1000000)
 
-        # 返回结果
-        io_finish_lock.acquire()
-        # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, IO时间 ]
-        io_finish_queue.put([recv[0],recv[1],recv[2],recv[3],time_interval,all_copy_latency])
-        io_finish_lock.release()
+            # 返回结果
+            io_finish_lock.acquire()
+            # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, IO时间 ]
+            io_finish_queue.put([recv[0],recv[1],recv[2],recv[3],time_interval,all_copy_latency])
+            io_finish_lock.release()
 
 def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,R_time:int,W_time:int,CP_time:int):
     io_finish_lock.acquire()
