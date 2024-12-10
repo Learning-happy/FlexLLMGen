@@ -6,18 +6,29 @@ import random
 from multiprocessing import Process,Pool,Pipe,Queue,Manager
 from multiprocessing import Lock as mlock
 
-GPU_NUM = 2
-PCIE_BW = 16 # GB/S
+# 目标GPU与原GPU的推理性能之比（原GPU：录制trace文件的GPU），默认为 1
+GPU_SPEED_UP = 8 
+# [不推荐使用] 目标LLM与原LLM的大小之比（原LLM：录制trace文件的LLM），默认为 1
+# 注意:模型层数无法改变，仅scale了每层的参数量
+LLM_SIZE_SCALING = 1 
 
-Max_TOKENS = 10 #最大KVcahe预算，当前实现了滑动窗口法
-Max_KVcache_size=[543,32,64] # KVcache_data具体大小要根据模型参数手动指定来通过检查,否则assert
-oneCache=torch.ones([1,32,64],dtype=torch.float16,device="cpu")
-MaxAttLayerId=48
+GPU_NUM = 4 # 模拟的GPU（LLM实例）数量
+PCIE_BW = 16 # PCIe带宽，用于计算CPU与GPU之间的数据搬运开销，单位：GB/S
+MAX_Q = -1 # Trace回放数量，以Q为单位：考虑到测试集太大，可以推理到一定的数量就停止回放；默认值-1，即全部测试完
 
-kvpath="./kvcache/"
-# kvpath="/mnt/md0/" #需要先挂载RAID至该目录
-json_metapath="../Tracefile/q_num_for_every_session.json"
-json_path="../Tracefile/"
+HEAD_NUM = 32 #注意力头数，需根据模型手动指定，当前为 opt1.3B
+WEIGHT_DEM = 64 #权重维度，需根据模型手动指定，当前为 opt1.3B
+MAX_ATT_LAYER_ID=48 # attention的最后一层在全局的 Layer Id，需根据模型手动指定，当前为 opt1.3B
+Max_KVcache_size=[543,HEAD_NUM,WEIGHT_DEM] # KVcache_data具体大小要根据模型参数手动指定来通过检查,否则assert
+oneCache=torch.ones([LLM_SIZE_SCALING,HEAD_NUM,WEIGHT_DEM],dtype=torch.float16,device="cpu")
+MAX_TOKENS = 512 #最大KVcahe预算，当前实现了滑动窗口法
+
+# KVPATH = "./kvcache/" # 存放KVcache的目录
+# KVPATH = "/mnt/md0/kvcache/" #需要先挂载 RAID 至/mnt/md0/
+KVPATH = "/mnt/ssd/kvcache/" #需要先挂载 femu盘 至/mnt/ssd/
+# json_path = "../Tracefile/"
+json_path = "/home/femu/MoreTracefile/101sessions_opt1-3/Tracefile/"
+json_metapath = json_path + "q_num_for_every_session.json"
 
 def delayMicrosecond(t):    # 微秒级延时函数
     start,end=0,0           # 声明变量
@@ -34,6 +45,7 @@ def aio_trace(io_submit_queue:Queue,io_submit_lock,
     while True: # 持续处理，直到父进程通知其结束
         listening2=True
         while(listening2): # 持续接听，直到获取新任务
+            delayMicrosecond(100)
             io_submit_lock.acquire()
             if not io_submit_queue.empty():
                 recv = io_submit_queue.get()
@@ -42,7 +54,6 @@ def aio_trace(io_submit_queue:Queue,io_submit_lock,
                     listening1=False
                 listening2=False
             io_submit_lock.release()
-            delayMicrosecond(50)
 
         if listening1 == False:
             break
@@ -92,12 +103,14 @@ def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,R_time:int,
 
 def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pid:int,
                  io_submit_queue:Queue, io_submit_lock, io_finish_queue:Queue, io_finish_lock):
-    
+    sleep_time = random.randint(1,GPU_NUM*10) # 差异化启动多个进程，模拟多GPU服务器繁忙程度不同的情况
+    time.sleep(sleep_time)
     # print("Init process-"+str(pid))
     listening1=True
     while True: # 持续处理，直到父进程通知其结束
         listening2=True
         while(listening2): # 持续接听，直到获取新任务
+            delayMicrosecond(1000)
             recv_lock.acquire()
             if not recv_queue.empty():
                 recv = recv_queue.get() # List:[session_id,q_id,stored_tokens]
@@ -156,19 +169,19 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                                 if item[2] == json_data["Gen_token_id"] and item[3] == json_data["layer_id"]: # KVcache预取还没完成
                                     wait = True
 
-                    sleep_time = int(float(json_data["time_cost(s)"])*1000000)
+                    sleep_time = int(float(json_data["time_cost(s)"])*1000000/GPU_SPEED_UP*LLM_SIZE_SCALING)
                     time_start=time.time() 
                     delayMicrosecond(sleep_time)
                     time_interval=int((time.time() - time_start)*1000000)
                     comp_time+=time_interval
 
                 elif json_data["opration"] == "store kcache" or json_data["opration"] == "store vcache":
-                    assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
+                    # assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
                     pt_names=[]
                     token_len = int(json_data["session_len"])
                     for i in range(token_len-stored_tokens):
-                        token_id = (i+stored_tokens) % Max_TOKENS + 1
-                        pt_names.append(kvpath+nameHead+"T"+str(token_id)+str(json_data["opration"][-6:])+".pt")
+                        token_id = (i+stored_tokens) % MAX_TOKENS + 1
+                        pt_names.append(KVPATH+nameHead+"T"+str(token_id)+str(json_data["opration"][-6:])+".pt")
                     io_submit_lock.acquire()
                     # ["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
                     io_submit_queue.put(["W", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], 
@@ -176,7 +189,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                     io_submit_lock.release()
                     io_submiting.append(["W", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], json_data["layer_id"]])
 
-                    if json_data["layer_id"] == MaxAttLayerId: # store增量，#todo：异步IO适配
+                    if json_data["layer_id"] == MAX_ATT_LAYER_ID: # store增量，#todo：异步IO适配
                         if str(json_data["opration"][-6:]) == "k":
                             stored_tokens_k=token_len
                         if str(json_data["opration"][-6:]) == "v":
@@ -186,16 +199,16 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
 
                 elif json_data["opration"] == "load kcache" or json_data["opration"] == "load vcache" or json_data["opration"] == "load history kcache" or json_data["opration"] == "load history vcache":
                     if json_data["opration"] == "load kcache" or json_data["opration"] == "load vcache":
-                        assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
-                        token_len = min (int(json_data["session_len"])-1, Max_TOKENS)
+                        # assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
+                        token_len = min (int(json_data["session_len"])-1, MAX_TOKENS)
                     if json_data["opration"] == "load history kcache" or json_data["opration"] == "load history vcache":
-                        assert str(Max_KVcache_size)[1:-1] == str(json_data["shape"][1:-1])
-                        token_len = min (int(json_data["history_len"]), Max_TOKENS)
+                        # assert str(Max_KVcache_size)[1:-1] == str(json_data["shape"][1:-1])
+                        token_len = min (int(json_data["history_len"]), MAX_TOKENS)
 
                     pt_names=[]
                     for i in range(token_len):
                         token_id = i+1
-                        pt_names.append(kvpath+nameHead+"T"+str(token_id)+str(json_data["opration"][-6:])+".pt")
+                        pt_names.append(KVPATH+nameHead+"T"+str(token_id)+str(json_data["opration"][-6:])+".pt")
                     io_submit_lock.acquire()
                     # ["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
                     io_submit_queue.put(["R", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], 
@@ -210,13 +223,13 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
         while len(io_submiting) != 0:
             io_submiting, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time, CP_time)
 
-        print("  GPU=",pid," S_id=",session_id," Q_id=",q_id,end="  ")
+        print("PrInfo: pid=",pid," s_id=",session_id," Q_id=",q_id,end="  ")
         print("all:",int((time.time() - stime)*1000),"ms",end="  ")
-        print("cpu:",int(comp_time/1000),"ms",end="  ")
-        print("IO:",int(((R_time+W_time+CP_time)/1000)),"ms",end=" ")
-        print("(R:",int((R_time)/1000),"ms",end="  ")
-        print("W:",int((W_time)/1000),"ms",end="  ")
-        print("CP:",int((CP_time)/1000),"ms)")
+        print(" cpu:",int(comp_time/1000),"ms",end="  ")
+        print(" IO:",int(((R_time+W_time+CP_time)/1000)),"ms",end=" ")
+        print("( R:",int((R_time)/1000),"ms",end="  ")
+        print(" W:",int((W_time)/1000),"ms",end="  ")
+        print(" CP:",int((CP_time)/1000),"ms)")
 
         send_lock.acquire()
         send_queue.put(["e",session_id,pid,stored_tokens,comp_time,R_time,W_time,CP_time])
@@ -258,6 +271,10 @@ def run__process():
     session_processing=[] # 正在处理的session的标识
     session_stored_tokens=[] # 已存储完KVcache的token的id集合
     # session_tokens_id=[] # 一个二维list，存储着固定预算下，每个session当前保留的token id
+    
+    q_all_num = 0
+    q_finish_num = 0 # 已处理完的Q的数量
+    q_send_num = 0 # 已经发送的Q的数量
 
     with open(json_metapath,'r',encoding='utf8')as fp:
         json_datas = json.load(fp)
@@ -266,18 +283,19 @@ def run__process():
         session_index=0
         for _ , qnum in json_datas.items():
             session_left_qnums.append(int(qnum))
+            q_all_num += int(qnum)
             session_active.append(True)
             session_processing.append(False)
             session_stored_tokens.append(0)
             session_index+=1
-    print(session_left_qnums)
-    print(session_active)
+        # print(session_left_qnums)
+        print("session_nums=",session_nums)
 
     # 任务1开始分发
     stime=time.time()
     while session_active_num != 0:
-        SEND_FLAG=False
 
+        SEND_FLAG=False
         # 随机选取session部分：
         session_active_index = random.randint(0,session_nums-1) #从随机位置开始遍历
         search_list = [session_active_index+i for i in range(session_nums-session_active_index)]
@@ -292,6 +310,11 @@ def run__process():
 
         if session_processing[session_id] == False: #若=True，此session正在被处理，请重新分发任务
             SEND_FLAG = True
+
+        if MAX_Q != -1 and q_send_num == MAX_Q:
+            SEND_FLAG = False
+            if q_finish_num == MAX_Q:
+                break
         
         if SEND_FLAG:
             filepath=json_path+"session "+str(session_id)+" trace.json"
@@ -309,9 +332,10 @@ def run__process():
                 recv_lock.release()
 
                 if recv_list[0]=="s": # 子进程表示已接受任务
-                    print("take  : s_id="+str(recv_list[2]))
+                    print("take  : s_id=",recv_list[2],"  pid=",recv_list[1])
 
-                elif recv_list[0]=="e": # 子进程表示已完成任务        
+                elif recv_list[0]=="e": # 子进程表示已完成任务
+                    q_finish_num+=1        
                     tmp_session_id=recv_list[1]
                     session_stored_tokens[tmp_session_id]=recv_list[3]
                     all_comp_time+=recv_list[4]
@@ -321,14 +345,16 @@ def run__process():
 
                     session_processing[tmp_session_id]=False
                     session_left_qnums[tmp_session_id]-=1
+                    print("finish: s_id=",recv_list[1],"  pid=",tmp_session_id,"  q_finish_num=",q_finish_num,"(",q_all_num,")",end=" ")
                     if(session_left_qnums[tmp_session_id]==0):
                         session_active[tmp_session_id]=False
                         session_active_num-=1
-                        print("finish: s_id="+str(recv_list[1])+"  session_left_qnums="+str(session_left_qnums))
-                        print("session_active changed:" + str(session_active) + "  deactivate:"+str(tmp_session_id))
+                        # print("  session_left_qnums="+str(session_left_qnums),end=" ")
+                        print(" => Deactivate:"+str(tmp_session_id),end=" ")
                     else:
-                        print("finish: s_id="+str(recv_list[1])+"  session_left_qnums="+str(session_left_qnums))
-                    
+                        # print("  session_left_qnums="+str(session_left_qnums),end=" ")
+                        pass
+                    print("")
                 else:
                     assert 0
 
@@ -340,14 +366,21 @@ def run__process():
             send_queue.put([session_id,qid,session_stored_tokens[session_id]])
             send_lock.release()
             session_processing[session_id]=True
-            print("public: s_id="+str(session_id)+"  session_left_qnums="+str(session_left_qnums))
+            print("public: s_id=", session_id, end=" ")
+            # print(" session_left_qnums=", session_left_qnums)
+            active_session_num = 0
+            for active in session_active:
+                if active:
+                    active_session_num += 1 
+            print("  active_session_num=",active_session_num)
+            q_send_num += 1
 
-    print("\nCPU:",int(all_comp_time/1000),"ms",end="  ")
-    print("IO:",int((all_R_time+all_W_time+all_CP_time)/1000),"ms",end=" ")
-    print("(R:",int((all_R_time)/1000),"ms",end=" ")
-    print("W:",int((all_W_time)/1000),"ms",end=" ")
-    print("CP:",int((all_CP_time)/1000),"ms)")
-    print("ALL run_time",int((time.time() - stime)*1000),"ms")
+    print("\nCPU:",int(all_comp_time/1000)/1000,"s",end="  ")
+    print("  IO:",int((all_R_time+all_W_time+all_CP_time)/1000)/1000,"s",end=" ")
+    print(" ( R:",int((all_R_time)/1000)/1000,"s",end=" ")
+    print(" W:",int((all_W_time)/1000)/1000,"s",end=" ")
+    print(" CP:",int((all_CP_time)/1000)/1000,"s)")
+    print("ALL run_time",int((time.time() - stime)*1000)/1000,"s")
     
     send_lock.acquire()
     for _ in range(GPU_NUM): # 结束子进程
@@ -362,3 +395,5 @@ if __name__ =='__main__':
 
 # # todo: 没有完全模拟出flexgen的IO方式（memmap）
 # # todo：设定了静态的模型参数，不能自动读取模型元数据
+# # 小文件太多，文件系统瓶颈导致IO写性能受限
+# # pagecache缓存了大量KVcache，使读IO锐减，问题不突出
