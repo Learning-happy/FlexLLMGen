@@ -56,6 +56,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,
         finish_time=0
         R_time=0
         W_time=0
+        comp_time=0
 
         session_id=recv[0]
         q_id=recv[1]
@@ -69,6 +70,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,
             assert q_id==json_datas[q_id]["q"]
             qinfo=json_datas[q_id]["I/O info"]
             
+            all_time_start=time.time()
             for json_data in qinfo:
                 nameHead="S"+str(session_id)+"L"+str(json_data["layer_id"])
 
@@ -82,7 +84,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,
                     delayMicrosecond(sleep_time)
                     time_interval=int((time.time() - time_start)*1000000)
                     # timePrint("\n  compute_time="+str(sleep_time)+" -- "+str(time_interval))
-                    finish_time+=time_interval
+                    comp_time+=time_interval
 
                 elif json_data["opration"] == "store kcache" or json_data["opration"] == "store vcache":
                     assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
@@ -95,7 +97,6 @@ def foward_trace(recv_queue:Queue,  recv_lock,
                         torch.save(oneCache, pt_name)
                         time_interval=int((time.time() - time_start)*1000000)
                         # timePrint("  "+str(json_data["opration"][-6:-5])+"_saveTime="+str(time_interval))
-                        finish_time+=time_interval
                         W_time+=time_interval
                     if json_data["layer_id"] == MaxAttLayerId: # store增量，#todo：异步IO适配
                         if str(json_data["opration"][-6:]) == "k":
@@ -116,7 +117,6 @@ def foward_trace(recv_queue:Queue,  recv_lock,
                         data = torch.load(pt_name, map_location=lambda storage, loc: storage,weights_only=True)
                         time_interval=int((time.time() - time_start)*1000000)
                         # timePrint("  "+str(json_data["opration"][-6:-5])+"_loadTime="+str(time_interval))
-                        finish_time+=time_interval
                         R_time+=time_interval
 
                 elif json_data["opration"] == "load history kcache" or json_data["opration"] == "load history vcache":
@@ -130,15 +130,17 @@ def foward_trace(recv_queue:Queue,  recv_lock,
                         data = torch.load(pt_name, map_location=lambda storage, loc: storage,weights_only=True)
                         time_interval=int((time.time() - time_start)*1000000)
                         # timePrint("  his_"+str(json_data["opration"][-6:-5])+"_load_time="+str(time_interval))
-                        finish_time+=time_interval
                         R_time+=time_interval
 
                 else:
                     print("WARNING"+str(session_id)+"-"+str(q_id)+":\n"+str(json_data))
                     assert 0
 
+        finish_time = int((time.time() - all_time_start)*1000000)
+
         print("  GPU="+str(pid)+" S_id="+str(session_id)+" Q_id="+str(q_id),end="  ")
         print("ALL_time:"+str(finish_time/1000)+" ms",end="  ")
+        print("CPU_time:"+str((comp_time)/1000)+"ms",end="  ")
         print("IO_time:"+str((R_time+W_time)/1000)+"ms",end="  ")
         print("R_time:"+str((R_time)/1000)+"ms",end="  ")
         print("W_time:"+str((W_time)/1000)+"ms")
