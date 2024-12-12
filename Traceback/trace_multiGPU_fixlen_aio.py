@@ -57,9 +57,10 @@ def aio_trace(io_submit_queue:Queue,io_submit_lock,
 
         if listening1 == False:
             break
-
+        
+        IO_wait_time=int((time.time() - recv[5])*1000000)
         # 执行 IO
-        # IO submit 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
+        # IO submit 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....],io提交时间]
         all_copy_latency = 0
         copy_latency = (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
         time_start=time.time()
@@ -67,25 +68,27 @@ def aio_trace(io_submit_queue:Queue,io_submit_lock,
             # print("do io :",filepath)
             if recv[0] == "R":
                 data = torch.load(filepath, map_location=lambda storage, loc: storage,weights_only=True)
+                delayMicrosecond(copy_latency)
             if recv[0] == "W":
+                delayMicrosecond(copy_latency)
                 torch.save(saveCache, filepath)
-            delayMicrosecond(copy_latency)
             all_copy_latency += copy_latency
-        time_interval=int((time.time() - time_start)*1000000)
+        RW_time_interval=int((time.time() - time_start)*1000000)
 
         # 返回结果
         io_finish_lock.acquire()
-        # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, IO时间 ]
-        io_finish_queue.put([recv[0],recv[1],recv[2],recv[3],time_interval,all_copy_latency])
+        # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, 文件读写时间，cp时间, IO等待时间） ]
+        io_finish_queue.put([recv[0],recv[1],recv[2],recv[3],RW_time_interval-all_copy_latency,all_copy_latency,IO_wait_time])
         io_finish_lock.release()
 
-def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,R_time:int,W_time:int,CP_time:int):
+def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,IO_wait_time:int,R_time:int,W_time:int,CP_time:int):
     io_finish_lock.acquire()
+    tp_IO_wait_time = IO_wait_time
     tp_R_time = R_time
     tp_W_time = W_time
     tp_cp_time = CP_time
     while not io_finish_queue.empty():
-        # IO finish 格式：["R"或者"W", Gen_token_id, layer_id, IO时间 ]
+        # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, 文件读写时间，cp时间, IO等待时间） ]
         recv = io_finish_queue.get()
         index = 0
         for item in io_submiting:
@@ -96,14 +99,15 @@ def check_io(io_finish_lock, io_finish_queue:Queue,io_submiting:list,R_time:int,
                 if recv[0] == "W":
                     tp_W_time += recv[4]
                 tp_cp_time += recv[5]
+                tp_IO_wait_time += recv[6]
                 break
             index+=1
     io_finish_lock.release()
-    return io_submiting,tp_R_time,tp_W_time,tp_cp_time
+    return io_submiting,tp_IO_wait_time,tp_R_time,tp_W_time,tp_cp_time
 
 def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pid:int,
                  io_submit_queue:Queue, io_submit_lock, io_finish_queue:Queue, io_finish_lock):
-    sleep_time = random.randint(1,GPU_NUM*10) # 差异化启动多个进程，模拟多GPU服务器繁忙程度不同的情况
+    sleep_time = random.randint(0,GPU_NUM*10) # 差异化启动多个进程，模拟多GPU服务器繁忙程度不同的情况
     time.sleep(sleep_time)
     # print("Init process-"+str(pid))
     listening1=True
@@ -130,9 +134,19 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
             break
         
         comp_time=0
+        IO_wait_time=0
         R_time=0
         W_time=0
         CP_time=0
+        all_time = 0
+
+        submit_comp_time=0
+        submit_R_time=0
+        submit_W_time=0
+
+        TTFT = 0
+        TPOT = 0
+        generate_tokens_num = 0
 
         session_id=recv[0]
         q_id=recv[1]
@@ -143,15 +157,14 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
 
         io_submiting=[] #记录正在处理中的IO，格式为 [ ["R"或"W", "k"或"v", Gen_token_id, layer_id], [,,], [,,] ...]
         
+        all_stime = time.time()
         with open(filepath,'r',encoding='utf8')as fp:
             json_datas = json.load(fp)
             assert q_id==json_datas[q_id]["q"]
             qinfo=json_datas[q_id]["I/O info"]
             
-            stime = time.time()
             for json_data in qinfo:
-                # 处理一遍 IO结果
-                io_submiting, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time, CP_time)
+                generate_tokens_num = int(json_data["Gen_token_id"])
                 nameHead="S"+str(session_id)+"L"+str(json_data["layer_id"])
 
                 if json_data["opration"] == "load weight":
@@ -159,25 +172,31 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                     pass
 
                 elif json_data["opration"] == "compute":
+                    stime = time.time()
                     # 检查 KVcache预取有没有完成
                     if json_data["layer_name"][-8:] == "selfattn":
                         wait = True
-                        while wait:
+                        while wait and len(io_submiting)!=0:
                             wait = False
-                            io_submiting, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time, CP_time)
+                            io_submiting, IO_wait_time, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, IO_wait_time, R_time, W_time, CP_time)
                             for item in io_submiting:
                                 if item[2] == json_data["Gen_token_id"] and item[3] == json_data["layer_id"]: # KVcache预取还没完成
                                     wait = True
                                     delayMicrosecond(100)
-                                    continue
+                                    break
 
                     sleep_time = int(float(json_data["time_cost(s)"])*1000000/GPU_SPEED_UP*LLM_SIZE_SCALING)
                     time_start=time.time() 
                     delayMicrosecond(sleep_time)
                     time_interval=int((time.time() - time_start)*1000000)
                     comp_time+=time_interval
+                    submit_comp_time += int((time.time() - stime)*1000000)
+
+                    if int(json_data["Gen_token_id"]) == 1 and json_data["layer_name"] == "OutputEmbed":
+                        TTFT = int((time.time() - all_stime)*1000000)
 
                 elif json_data["opration"] == "store kcache" or json_data["opration"] == "store vcache":
+                    stime = time.time()
                     # assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
                     pt_names=[]
                     token_len = int(json_data["session_len"])
@@ -185,9 +204,9 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                         token_id = (i+stored_tokens) % MAX_TOKENS + 1
                         pt_names.append(KVPATH+nameHead+"T"+str(token_id)+str(json_data["opration"][-6:])+".pt")
                     io_submit_lock.acquire()
-                    # ["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
+                    # ["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....],io提交时间]
                     io_submit_queue.put(["W", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], 
-                                         json_data["layer_id"], pt_names]) 
+                                         json_data["layer_id"], pt_names, time.time()]) 
                     io_submit_lock.release()
                     io_submiting.append(["W", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], json_data["layer_id"]])
 
@@ -198,8 +217,10 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                             stored_tokens_v=token_len
                         if stored_tokens_k==token_len and stored_tokens_v==token_len:
                             stored_tokens=token_len
+                    submit_R_time += int((time.time() - stime)*1000000)
 
                 elif json_data["opration"] == "load kcache" or json_data["opration"] == "load vcache" or json_data["opration"] == "load history kcache" or json_data["opration"] == "load history vcache":
+                    stime = time.time()
                     if json_data["opration"] == "load kcache" or json_data["opration"] == "load vcache":
                         # assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
                         token_len = min (int(json_data["session_len"])-1, MAX_TOKENS)
@@ -212,31 +233,40 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                         token_id = i+1
                         pt_names.append(KVPATH+nameHead+"T"+str(token_id)+str(json_data["opration"][-6:])+".pt")
                     io_submit_lock.acquire()
-                    # ["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....]]
+                    # ["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....],io提交时间]
                     io_submit_queue.put(["R", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], 
-                                         json_data["layer_id"], pt_names]) 
+                                         json_data["layer_id"], pt_names, time.time()]) 
                     io_submit_lock.release()
                     io_submiting.append(["R", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], json_data["layer_id"]])
+                    submit_W_time += int((time.time() - stime)*1000000)
 
                 else:
                     print("WARNING"+str(session_id)+"-"+str(q_id)+":\n"+str(json_data))
                     assert 0
-
+        
         while len(io_submiting) != 0:
-            io_submiting, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, R_time, W_time, CP_time)
+            io_submiting, IO_wait_time, R_time, W_time, CP_time = check_io(io_finish_lock, io_finish_queue, io_submiting, IO_wait_time, R_time, W_time, CP_time)
             delayMicrosecond(100)
 
-        all_time = int((time.time() - stime)*1000000)
+        all_time += int((time.time() - all_stime)*1000000)
+        TPOT = (all_time-TTFT)/(generate_tokens_num-1)
+  
         print("PrInfo: pid=",pid," s_id=",session_id," Q_id=",q_id,end="  ")
-        print("all:",all_time,"ms",end="  ")
-        print(" cpu:",int(comp_time/1000),"ms",end="  ")
-        print(" IO:",int(((R_time+W_time+CP_time)/1000)),"ms",end=" ")
-        print("( R:",int((R_time)/1000),"ms",end="  ")
-        print(" W:",int((W_time)/1000),"ms",end="  ")
-        print(" CP:",int((CP_time)/1000),"ms)")
+        print("all:",int(all_time/1000)/1000,"s",end="  ")
+        print(" cpu:",int(comp_time/1000)/1000,"s",end="  ")
+        print(" (IO_wait:",int(((IO_wait_time)/1000))/1000,"s",
+                "  R:",int((R_time)/1000)/1000,"s",
+                "  W:",int((W_time)/1000)/1000,"s",
+                "  CP:",int((CP_time)/1000)/1000,"s)")
+        print("      + submit_comp_time=",int(submit_comp_time/1000)/1000,"s",
+                     " submit_R_time=",int(submit_R_time/1000)/1000,"s",
+                     " submit_W_time=",int(submit_W_time/1000)/1000,"s")
+        print("      + TTFT(mean):",int(TTFT/1000)/1000,"s",
+                    "  TPOP(mean):",int(TPOT/1000)/1000,"s")
 
         send_lock.acquire()
-        send_queue.put(["e",session_id,pid,stored_tokens,comp_time,R_time,W_time,CP_time,all_time])
+        # send_queue.put(["e",session_id,pid,stored_tokens,comp_time,R_time,W_time,CP_time,all_time])
+        send_queue.put(["e",session_id,pid,stored_tokens,comp_time,IO_wait_time,R_time,W_time,CP_time,all_time,TTFT,TPOT,generate_tokens_num])
         send_lock.release()
 
 def run__process():
@@ -263,10 +293,14 @@ def run__process():
 
     # 时间统计初始化
     all_comp_time=0
+    all_IO_wait_time=0
     all_R_time=0
     all_W_time=0
     all_CP_time=0
     all_finish_qtime=0
+
+    all_TTFT=0
+    all_TPOT=0
 
     # 任务分发数据结构初始化
     session_nums=0 #共有几个session
@@ -344,10 +378,13 @@ def run__process():
                     tmp_session_id=recv_list[1]
                     session_stored_tokens[tmp_session_id]=recv_list[3]
                     all_comp_time+=recv_list[4]
-                    all_R_time+=recv_list[5]
-                    all_W_time+=recv_list[6]
-                    all_CP_time+=recv_list[7]
-                    all_finish_qtime+=recv_list[8]
+                    all_IO_wait_time+=recv_list[5]
+                    all_R_time+=recv_list[6]
+                    all_W_time+=recv_list[7]
+                    all_CP_time+=recv_list[8]
+                    all_finish_qtime+=recv_list[9]
+                    all_TTFT+=recv_list[10]
+                    all_TPOT+=recv_list[11]
 
                     session_processing[tmp_session_id]=False
                     session_left_qnums[tmp_session_id]-=1
@@ -382,11 +419,13 @@ def run__process():
             q_send_num += 1
 
     print("\nCPU:",int(all_comp_time/1000)/1000,"s",end="  ")
-    print("  IO:",int((all_R_time+all_W_time+all_CP_time)/1000)/1000,"s",end=" ")
-    print(" ( R:",int((all_R_time)/1000)/1000,"s",end=" ")
+    print(" ( IO_wait:",int((all_IO_wait_time)/1000)/1000,"s",end=" ")
+    print(" R:",int((all_R_time)/1000)/1000,"s",end=" ")
     print(" W:",int((all_W_time)/1000)/1000,"s",end=" ")
-    print(" CP:",int((all_CP_time)/1000)/1000,"s)")
-    print(" FQ:",int((all_finish_qtime)/1000)/1000,"s)")
+    print(" CP:",int((all_CP_time)/1000)/1000,"s)",end=" ")
+    print(" all_qtime:",int((all_finish_qtime)/1000)/1000,"s")
+    print(" TTFT(mean):",int((all_TTFT/q_send_num)/1000)/1000,"s",end=" ")
+    print(" TPOP(mean):",int((all_TPOT/q_send_num)/1000)/1000,"s")
     print("ALL run_time",int((time.time() - stime)*1000)/1000,"s")
     
     send_lock.acquire()
@@ -404,4 +443,5 @@ if __name__ =='__main__':
 # # todo：设定了静态的模型参数，不能自动读取模型元数据
 # # 小文件太多，文件系统瓶颈导致IO写性能受限
 # # pagecache缓存了大量KVcache，使读IO锐减，问题不突出
-# # TTFT等延迟没统计，同时 总延迟 > 同步IO的延迟
+# # 暂不支持批处理
+# # multiprocessing的多进程通信开销太高
