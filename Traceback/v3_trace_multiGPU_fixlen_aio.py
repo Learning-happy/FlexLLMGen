@@ -12,7 +12,7 @@ GPU_SPEED_UP = 1
 # 注意:模型层数无法改变，仅scale了每层的参数量
 LLM_SIZE_SCALING = 1 
 
-GPU_NUM = 4 # 模拟的GPU（LLM实例）数量
+GPU_NUM = 2 # 模拟的GPU（LLM实例）数量
 PCIE_BW = 16 # PCIe带宽，用于计算CPU与GPU之间的数据搬运开销，单位：GB/S
 MAX_Q = -1 # Trace回放数量，以Q为单位：考虑到测试集太大，可以推理到一定的数量就停止回放；默认值-1，即全部测试完
 
@@ -217,7 +217,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                             stored_tokens_v=token_len
                         if stored_tokens_k==token_len and stored_tokens_v==token_len:
                             stored_tokens=token_len
-                    submit_R_time += int((time.time() - stime)*1000000)
+                    submit_W_time += int((time.time() - stime)*1000000)
 
                 elif json_data["opration"] == "load kcache" or json_data["opration"] == "load vcache" or json_data["opration"] == "load history kcache" or json_data["opration"] == "load history vcache":
                     stime = time.time()
@@ -238,7 +238,7 @@ def foward_trace(recv_queue:Queue,  recv_lock,  send_queue:Queue,  send_lock, pi
                                          json_data["layer_id"], pt_names, time.time()]) 
                     io_submit_lock.release()
                     io_submiting.append(["R", str(json_data["opration"][-6:-5]), json_data["Gen_token_id"], json_data["layer_id"]])
-                    submit_W_time += int((time.time() - stime)*1000000)
+                    submit_R_time += int((time.time() - stime)*1000000)
 
                 else:
                     print("WARNING"+str(session_id)+"-"+str(q_id)+":\n"+str(json_data))
