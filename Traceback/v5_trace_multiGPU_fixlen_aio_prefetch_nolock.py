@@ -180,9 +180,11 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
                         # 某些情况下不需要预取
                         if json_data["Gen_token_id"]>1 or q_id > 1:
                             # assert str(Max_KVcache_size) == str(json_data["shape"][11:-1])
+                            Gen_token_id = json_data["Gen_token_id"]
                             if load_next_layerid > MAX_ATT_LAYER_ID: # 如果是最后一层attention，则去取第一层的KVcache
                                 load_next_layerid = 2
                                 load_next_token_len=min(load_next_token_len+1, MAX_TOKENS) 
+                                Gen_token_id=Gen_token_id+1
                             if load_next_token_len == -1:
                                 print(json_data,load_next_layerid,load_next_token_len)
                                 assert 0
@@ -193,10 +195,10 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
                                 pt_knames.append(KVPATH+"S"+str(session_id)+"L"+str(load_next_layerid)+"T"+str(token_id)+"kcache"+".pt")
                                 pt_vnames.append(KVPATH+"S"+str(session_id)+"L"+str(load_next_layerid)+"T"+str(token_id)+"vcache"+".pt")
                             # ["R"或者"W", "k"或者"v", Gen_token_id, layer_id, [文件名，文件名，....],io提交时间]
-                            io_submit_queue.put(["R", "k", json_data["Gen_token_id"], load_next_layerid, pt_knames, time.time()]) 
-                            io_submiting.append(["R","k", json_data["Gen_token_id"], load_next_layerid])
-                            io_submit_queue.put(["R", "v", json_data["Gen_token_id"], load_next_layerid, pt_vnames, time.time()]) 
-                            io_submiting.append(["R","v", json_data["Gen_token_id"], load_next_layerid])
+                            io_submit_queue.put(["R", "k", Gen_token_id, load_next_layerid, pt_knames, time.time()]) 
+                            io_submiting.append(["R","k", Gen_token_id, load_next_layerid])
+                            io_submit_queue.put(["R", "v", Gen_token_id, load_next_layerid, pt_vnames, time.time()]) 
+                            io_submiting.append(["R","v", Gen_token_id, load_next_layerid])
 
                     sleep_time = int(float(json_data["time_cost(s)"])*1000000/GPU_SPEED_UP*LLM_SIZE_SCALING)
                     time_start=time.time() 

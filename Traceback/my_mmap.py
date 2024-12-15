@@ -15,17 +15,20 @@ filename = 'oneCache.pt'
 
 # 确保文件存在，并且大小足够
 file_size = oneCache.numel() * oneCache.dtype.itemsize
+
 with open(filename, 'wb') as f:
-    f.truncate(file_size)
-
-# 打开文件并创建内存映射
-with open(filename, 'r+b') as f:
-    mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_WRITE)
-
-    # 将tensor的数据写入内存映射文件
+    # f.truncate(file_size)
     buffer = oneCache.cpu().numpy().tobytes()  # 将tensor转换为bytes
-    mm.write(buffer)
-    mm.flush()  # 确保数据写入磁盘
+    f.write(buffer)
+
+# # 打开文件并创建内存映射
+# with open(filename, 'r+b') as f:
+#     mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_WRITE)
+
+#     # 将tensor的数据写入内存映射文件
+#     buffer = oneCache.cpu().numpy().tobytes()  # 将tensor转换为bytes
+#     mm.write(buffer)
+#     mm.flush()  # 确保数据写入磁盘
 
 # 定义一个函数来更新内存映射文件中的特定切片
 def update_slice(tensor, index):
@@ -46,6 +49,7 @@ def read_slice(index):
         mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         # 计算切片的起始位置
         start = index * HEAD * DEM * oneCache.dtype.itemsize
+        mm.seek(start)  # 移动到指定的起始位置
         # 读取切片数据
         buffer = mm.read(HEAD * DEM * oneCache.dtype.itemsize)
         mm.close()
@@ -53,12 +57,8 @@ def read_slice(index):
         return np.frombuffer(buffer, dtype=np.float16).reshape(HEAD, DEM)
 
 # 模拟tensor的[1,:,:]切片部分随机变化
-for _ in range(500000):  # 假设我们更新5次
+for _ in range(5):  # 假设我们更新5次
     updated_slice = torch.randn(HEAD, DEM, dtype=torch.float16)
-    update_slice(updated_slice, 1)  # 更新文件中的第2个切片（索引从0开始）
+    update_slice(updated_slice, 0)  # 更新文件中的第2个切片（索引从0开始）
     print("Updated slice at index 1:")
-    print(read_slice(1))
-
-# 清理资源
-if mm:
-    mm.close()
+    print(read_slice(0))
