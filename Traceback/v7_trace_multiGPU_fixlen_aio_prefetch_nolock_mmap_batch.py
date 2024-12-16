@@ -9,6 +9,7 @@ import os
 import ctypes
 
 # 目标GPU与原GPU的推理性能之比（原GPU：录制trace文件的GPU），默认为 1
+# 4090:2 V100:3 A100:8 H800:50
 GPU_SPEED_UP = 1 
 # [不推荐使用] 目标LLM与原LLM的大小之比（原LLM：录制trace文件的LLM），默认为 1
 # 注意:模型层数无法改变，仅scale了每层的参数量
@@ -17,20 +18,23 @@ LLM_SIZE_SCALING = 1
 GPU_NUM = 2 # 模拟的GPU（LLM实例）数量
 PCIE_BW = 16 # PCIe带宽，用于计算CPU与GPU之间的数据搬运开销，单位：GB/S
 MAX_Q = -1 # Trace回放数量，以Q为单位：考虑到测试集太大，可以推理到一定的数量就停止回放；默认值-1，即全部测试完
+BATCH_SIZE = 32
+# batch_slowdown = 1
+batch_slowdown = float((1+(BATCH_SIZE-1)/10)) # batch_size的大小对计算开销的影响模拟
 
 HEAD_NUM = 32 #注意力头数，需根据模型手动指定，当前为 opt1.3B
-WEIGHT_DEM = 64 #权重维度，需根据模型手动指定，当前为 opt1.3B
+WEIGHT_DEM = 64*LLM_SIZE_SCALING #权重维度，需根据模型手动指定，当前为 opt1.3B
 MAX_ATT_LAYER_ID=48 # attention的最后一层在全局的 Layer Id，需根据模型手动指定，当前为 opt1.3B
 ATT_LAYER_NUM=24 # attention的最后一层在全局的 Layer Id，需根据模型手动指定，当前为 opt1.3B
 oneCache=torch.ones([1,1,HEAD_NUM,WEIGHT_DEM],dtype=torch.float16,device="cpu")
 MAX_TOKENS = 512 #最大KVcahe预算，当前实现了滑动窗口法
 Max_KVcache=torch.ones([ATT_LAYER_NUM,MAX_TOKENS,HEAD_NUM,WEIGHT_DEM],dtype=torch.float16,device="cpu")
 
-KVPATH = "./kvcache/" # 存放KVcache的目录
-# KVPATH = "/mnt/md0/kvcache/" #需要先挂载 RAID 至/mnt/md0/
+# KVPATH = "./kvcache/" # 存放KVcache的目录
+KVPATH = "/mnt/md0/kvcache/" #需要先挂载 RAID 至/mnt/md0/
 # KVPATH = "/mnt/ssd/kvcache/" #需要先挂载 femu盘 至/mnt/ssd/
-# json_path = "../Tracefile/"
-json_path = "/home/femu/MoreTracefile/101sessions_opt1-3/Tracefile/"
+json_path = "../Tracefile/"
+# json_path = "/home/femu/MoreTracefile/101sessions_opt1-3/Tracefile/"
 json_metapath = json_path + "q_num_for_every_session.json"
 
 def delayMicrosecond(t):    # 微秒级延时函数
@@ -72,14 +76,14 @@ def read_mmapfile(mm, max_index,layer_index):
     # 计算切片的起始位置
     mm.seek(att_layer_id*MAX_TOKENS*HEAD_NUM*WEIGHT_DEM)
     buffer = mm.read(max_index*HEAD_NUM*WEIGHT_DEM * oneCache.dtype.itemsize)
-    return int((time.time() - stime)*1000000)
+    return [int((time.time() - stime)*1000000), buffer]
 
 def aio_trace(io_submit_queue:Queue, io_finish_queue:Queue):
     saveCache = oneCache
     listening1=True
     session_id = -1
-    fp = None
-    mm = None
+    fp = [None for _ in range(BATCH_SIZE)]
+    mm = [None for _ in range(BATCH_SIZE)]
     while True: # 持续处理，直到父进程通知其结束
         listening2=True
         while(listening2): # 持续接听，直到获取新任务
@@ -93,46 +97,72 @@ def aio_trace(io_submit_queue:Queue, io_finish_queue:Queue):
                 delayMicrosecond(100)
 
         if listening1 == False:
-            if mm != None:
-                mm.flush()
-                mm.close()
-            if fp != None:
-                fp.close()
+            for i in range(BATCH_SIZE):
+                if mm[i] != None:
+                    mm[i].flush()
+                    mm[i].close()
+                if fp[i] != None:
+                    fp[i].close()
             break
         
+        # print("do io :",recv)
         IO_wait_time=int((time.time() - recv[6])*1000000)
-        filename = KVPATH+"S"+str(recv[3])+".pt"
-        # 执行 IO
+        filename = [KVPATH+"S"+str(recv[3])+"B"+str(bid)+".pt" for bid in range(BATCH_SIZE)]
         # IO submit 格式 1：["R", "k"或者"v", Gen_token_id, session_id, layer_id, token_len, io提交时间]
         # IO submit 格式 2：["W", "k"或者"v", Gen_token_id, session_id, layer_id, token_ids:list, io提交时间, creat?:bool]
+        # IO submit 格式 3：["F", -1,-1,-1,-1,-1, io提交时间]
         time_start=time.time()
-        # print("do io :",recv)
-        if recv[0] == "R":
-            read_mmapfile(mm, recv[5], recv[4])
-            copy_latency = recv[5] * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
-        if recv[0] == "W":
-            if session_id!= recv[3] or recv[7]:
-                if not os.path.exists(filename):
-                    if mm != None:
-                        mm.flush()
-                        mm.close()
-                    if fp != None:
-                        fp.close()
-                    fp = open(filename, 'wb')
-                    buffer_size = Max_KVcache.numel() * Max_KVcache.dtype.itemsize
-                    fp.truncate(buffer_size)
-                    fp.close()
-                    fp = open(filename, 'r+b')
-                    mm = mmap.mmap(fp.fileno(), 0)
-                    # mm.flush()
-            update_mmapfile(mm, recv[5],recv[4])
-            copy_latency = len(recv[5]) * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
+
+        # fp和 mm检查
+        if recv[0] == "R" or (recv[0] == "W" and (session_id!= recv[3] or recv[7])):
+            for i in range(BATCH_SIZE):
+                if not os.path.exists(filename[i]):
+                    if recv[0] == "R":
+                        assert 0
+                    if recv[0] == "W":
+                        assert mm[i] == None
+                        assert fp[i] == None
+                        fp[i] = open(filename[i], 'wb')
+                        buffer_size = Max_KVcache.numel() * Max_KVcache.dtype.itemsize
+                        fp[i].truncate(buffer_size)
+                        fp[i].close()
+                        fp[i]=None
+                if fp[i] == None and mm[i] == None:
+                    fp[i] = open(filename[i], 'r+b')
+                    mm[i] = mmap.mmap(fp[i].fileno(), 0)
+                elif fp[i] != None and mm[i] != None:
+                    pass
+                else:
+                    assert 0
+
+        # 执行 IO
+        copy_latency=0
+        for i in range(BATCH_SIZE):
+            if recv[0] == "R":
+                read_mmapfile(mm[i], recv[5], recv[4])
+                copy_latency += recv[5] * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
+            if recv[0] == "W":
+                update_mmapfile(mm[i], recv[5],recv[4])
+                copy_latency += len(recv[5]) * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
+            if recv[0] == "F":
+                assert mm[i] != None
+                mm[i].flush()
+                mm[i].close()
+                mm[i]=None
+                assert fp[i] != None
+                fp[i].close()
+                fp[i]=None
+                copy_latency = 0
         delayMicrosecond(copy_latency)
         RW_time_interval=int((time.time() - time_start)*1000000)
 
         # 返回结果
         # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, 文件读写时间，cp时间, IO等待时间） ]
-        io_finish_queue.put([recv[0],recv[1],recv[2],recv[4],RW_time_interval-copy_latency,copy_latency,IO_wait_time])
+        # 或者 ["F", FLUSH时间, IO等待时间]
+        if recv[0] == "F":
+            io_finish_queue.put(["F",RW_time_interval,IO_wait_time])
+        else:
+            io_finish_queue.put([recv[0],recv[1],recv[2],recv[4],RW_time_interval-copy_latency,copy_latency,IO_wait_time])
 
 def check_io(io_finish_queue:Queue,io_submiting:list,IO_wait_time:int,R_time:int,W_time:int,CP_time:int):
     tp_IO_wait_time = IO_wait_time
@@ -141,7 +171,15 @@ def check_io(io_finish_queue:Queue,io_submiting:list,IO_wait_time:int,R_time:int
     tp_cp_time = CP_time
     while not io_finish_queue.empty():
         # IO finish 格式：["R"或者"W", "k"或者"v", Gen_token_id, layer_id, 文件读写时间，cp时间, IO等待时间） ]
+        # 或者 ["F", FLUSH时间, IO等待时间]
         recv = io_finish_queue.get()
+        if recv[0] == "F":
+            tp_W_time += recv[1]
+            tp_IO_wait_time += recv[2]
+            # print("flush time=",recv[1])
+            assert io_submiting[0] == "F"
+            io_submiting.pop(0) 
+            continue
         index = 0
         for item in io_submiting:
             if item[0] == recv[0] and item[1] == recv[1] and item[2] == recv[2] and item[3] == recv[3]:
@@ -225,6 +263,7 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
 
                 elif json_data["opration"] == "compute":
                     stime = time.time()
+                    R_stime = 0
                     # 检查 KVcache预取有没有完成
                     if json_data["layer_name"][-8:] == "selfattn":
                         wait = True
@@ -238,6 +277,7 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
                                     # print("io_submiting:",io_submiting)
                                     break
                         
+                        R_stime = time.time()
                         # 下一层 KVcache的预取
                         load_next_layerid = json_data["layer_id"] + 2
                         # 某些情况下不需要预取
@@ -251,24 +291,22 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
                             if load_next_token_len == -1:
                                 print(json_data,load_next_layerid,load_next_token_len)
                                 assert 0
-                            # pt_knames=[]
-                            # pt_vnames=[]
-                            # for i in range(load_next_token_len):
-                            #     token_id = i+1
-                            #     pt_knames.append(KVPATH+"S"+str(session_id)+"L"+str(load_next_layerid)+"T"+str(token_id)+"kcache"+".pt")
-                            #     pt_vnames.append(KVPATH+"S"+str(session_id)+"L"+str(load_next_layerid)+"T"+str(token_id)+"vcache"+".pt")
-                            #    ["R", "k"或者"v", Gen_token_id, session_id, layer_id, io提交时间]
                             io_submit_queue.put(["R", "k", Gen_token_id, session_id, load_next_layerid, load_next_token_len, time.time()]) 
                             io_submiting.append(["R","k", Gen_token_id, load_next_layerid])
                             io_submit_queue.put(["R", "v", Gen_token_id, session_id, load_next_layerid, load_next_token_len, time.time()]) 
                             io_submiting.append(["R","v", Gen_token_id, load_next_layerid])
+                    if R_stime != 0:
+                        R_etime = time.time()
+                        submit_R_time += int((R_etime - R_stime)*1000000)
+                    else:
+                        R_etime = 0
 
-                    sleep_time = int(float(json_data["time_cost(s)"])*1000000/GPU_SPEED_UP*LLM_SIZE_SCALING)
+                    sleep_time = int(float(json_data["time_cost(s)"])*1000000/GPU_SPEED_UP*LLM_SIZE_SCALING*batch_slowdown)
                     time_start=time.time() 
                     delayMicrosecond(sleep_time)
                     time_interval=int((time.time() - time_start)*1000000)
                     comp_time+=time_interval
-                    submit_comp_time += int((time.time() - stime)*1000000)
+                    submit_comp_time += int((time.time() - stime - ( R_etime-R_stime ))*1000000)
 
                     if int(json_data["Gen_token_id"]) == 1 and json_data["layer_name"] == "OutputEmbed":
                         TTFT = int((time.time() - all_stime)*1000000)
@@ -321,12 +359,17 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
                     print("WARNING"+str(session_id)+"-"+str(q_id)+":\n"+str(json_data))
                     assert 0
         
+        stime = time.time()
+        # 将文件内容flush到磁盘并关闭mmap
+        io_submit_queue.put(["F",-1,-1,-1,-1,-1,time.time()])
+        io_submiting.append("F")
+        submit_W_time += int((time.time() - stime)*1000000)
         while len(io_submiting) != 0:
             io_submiting, IO_wait_time, R_time, W_time, CP_time = check_io(io_finish_queue, io_submiting, IO_wait_time, R_time, W_time, CP_time)
             delayMicrosecond(100)
 
         all_time += int((time.time() - all_stime)*1000000)
-        TPOT = (all_time-TTFT)/(generate_tokens_num-1)
+        TPOT = (all_time-TTFT)/(generate_tokens_num-1)/BATCH_SIZE
   
         print("PrInfo: pid=",pid," s_id=",session_id," Q_id=",q_id,end="  ")
         print("all:",int(all_time/1000)/1000,"s",end="  ")

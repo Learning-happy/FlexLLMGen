@@ -9,7 +9,6 @@ import os
 import ctypes
 
 # 目标GPU与原GPU的推理性能之比（原GPU：录制trace文件的GPU），默认为 1
-# 4090:2 V100:3 A100:8 H800:50
 GPU_SPEED_UP = 1 
 # [不推荐使用] 目标LLM与原LLM的大小之比（原LLM：录制trace文件的LLM），默认为 1
 # 注意:模型层数无法改变，仅scale了每层的参数量
@@ -18,9 +17,6 @@ LLM_SIZE_SCALING = 1
 GPU_NUM = 2 # 模拟的GPU（LLM实例）数量
 PCIE_BW = 16 # PCIe带宽，用于计算CPU与GPU之间的数据搬运开销，单位：GB/S
 MAX_Q = -1 # Trace回放数量，以Q为单位：考虑到测试集太大，可以推理到一定的数量就停止回放；默认值-1，即全部测试完
-BATCH_SIZE = 32
-# batch_slowdown = 1
-batch_slowdown = float((1+(BATCH_SIZE-1)/10)) # batch_size的大小对计算开销的影响模拟
 
 HEAD_NUM = 32 #注意力头数，需根据模型手动指定，当前为 opt1.3B
 WEIGHT_DEM = 64*LLM_SIZE_SCALING #权重维度，需根据模型手动指定，当前为 opt1.3B
@@ -30,8 +26,8 @@ oneCache=torch.ones([1,1,HEAD_NUM,WEIGHT_DEM],dtype=torch.float16,device="cpu")
 MAX_TOKENS = 512 #最大KVcahe预算，当前实现了滑动窗口法
 Max_KVcache=torch.ones([ATT_LAYER_NUM,MAX_TOKENS,HEAD_NUM,WEIGHT_DEM],dtype=torch.float16,device="cpu")
 
-# KVPATH = "./kvcache/" # 存放KVcache的目录
-KVPATH = "/mnt/md0/kvcache/" #需要先挂载 RAID 至/mnt/md0/
+KVPATH = "./kvcache/" # 存放KVcache的目录
+# KVPATH = "/mnt/md0/kvcache/" #需要先挂载 RAID 至/mnt/md0/
 # KVPATH = "/mnt/ssd/kvcache/" #需要先挂载 femu盘 至/mnt/ssd/
 json_path = "../Tracefile/"
 # json_path = "/home/femu/MoreTracefile/101sessions_opt1-3/Tracefile/"
@@ -82,8 +78,8 @@ def aio_trace(io_submit_queue:Queue, io_finish_queue:Queue):
     saveCache = oneCache
     listening1=True
     session_id = -1
-    fp = [None for _ in range(BATCH_SIZE)]
-    mm = [None for _ in range(BATCH_SIZE)]
+    fp = None
+    mm = None
     while True: # 持续处理，直到父进程通知其结束
         listening2=True
         while(listening2): # 持续接听，直到获取新任务
@@ -97,17 +93,16 @@ def aio_trace(io_submit_queue:Queue, io_finish_queue:Queue):
                 delayMicrosecond(100)
 
         if listening1 == False:
-            for i in range(BATCH_SIZE):
-                if mm[i] != None:
-                    mm[i].flush()
-                    mm[i].close()
-                if fp[i] != None:
-                    fp[i].close()
+            if mm != None:
+                mm.flush()
+                mm.close()
+            if fp != None:
+                fp.close()
             break
         
         # print("do io :",recv)
         IO_wait_time=int((time.time() - recv[6])*1000000)
-        filename = [KVPATH+"S"+str(recv[3])+"B"+str(bid)+".pt" for bid in range(BATCH_SIZE)]
+        filename = KVPATH+"S"+str(recv[3])+".pt"
         # IO submit 格式 1：["R", "k"或者"v", Gen_token_id, session_id, layer_id, token_len, io提交时间]
         # IO submit 格式 2：["W", "k"或者"v", Gen_token_id, session_id, layer_id, token_ids:list, io提交时间, creat?:bool]
         # IO submit 格式 3：["F", -1,-1,-1,-1,-1, io提交时间]
@@ -115,44 +110,41 @@ def aio_trace(io_submit_queue:Queue, io_finish_queue:Queue):
 
         # fp和 mm检查
         if recv[0] == "R" or (recv[0] == "W" and (session_id!= recv[3] or recv[7])):
-            for i in range(BATCH_SIZE):
-                if not os.path.exists(filename[i]):
-                    if recv[0] == "R":
-                        assert 0
-                    if recv[0] == "W":
-                        assert mm[i] == None
-                        assert fp[i] == None
-                        fp[i] = open(filename[i], 'wb')
-                        buffer_size = Max_KVcache.numel() * Max_KVcache.dtype.itemsize
-                        fp[i].truncate(buffer_size)
-                        fp[i].close()
-                        fp[i]=None
-                if fp[i] == None and mm[i] == None:
-                    fp[i] = open(filename[i], 'r+b')
-                    mm[i] = mmap.mmap(fp[i].fileno(), 0)
-                elif fp[i] != None and mm[i] != None:
-                    pass
-                else:
+            if not os.path.exists(filename):
+                if recv[0] == "R":
                     assert 0
+                if recv[0] == "W":
+                    assert mm == None
+                    assert fp == None
+                    fp = open(filename, 'wb')
+                    buffer_size = Max_KVcache.numel() * Max_KVcache.dtype.itemsize
+                    fp.truncate(buffer_size)
+                    fp.close()
+                    fp=None
+            if fp == None and mm == None:
+                fp = open(filename, 'r+b')
+                mm = mmap.mmap(fp.fileno(), 0)
+            elif fp != None and mm != None:
+                pass
+            else:
+                assert 0
 
         # 执行 IO
-        copy_latency=0
-        for i in range(BATCH_SIZE):
-            if recv[0] == "R":
-                read_mmapfile(mm[i], recv[5], recv[4])
-                copy_latency += recv[5] * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
-            if recv[0] == "W":
-                update_mmapfile(mm[i], recv[5],recv[4])
-                copy_latency += len(recv[5]) * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
-            if recv[0] == "F":
-                assert mm[i] != None
-                mm[i].flush()
-                mm[i].close()
-                mm[i]=None
-                assert fp[i] != None
-                fp[i].close()
-                fp[i]=None
-                copy_latency = 0
+        if recv[0] == "R":
+            read_mmapfile(mm, recv[5], recv[4])
+            copy_latency = recv[5] * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
+        if recv[0] == "W":
+            update_mmapfile(mm, recv[5],recv[4])
+            copy_latency = len(recv[5]) * (saveCache.numel() * saveCache.element_size()) / (PCIE_BW * 1000000000) * 1000000 # 以微妙为单位
+        if recv[0] == "F":
+            assert mm != None
+            mm.flush()
+            mm.close()
+            mm=None
+            assert fp != None
+            fp.close()
+            fp=None
+            copy_latency=0
         delayMicrosecond(copy_latency)
         RW_time_interval=int((time.time() - time_start)*1000000)
 
@@ -301,7 +293,7 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
                     else:
                         R_etime = 0
 
-                    sleep_time = int(float(json_data["time_cost(s)"])*1000000/GPU_SPEED_UP*LLM_SIZE_SCALING*batch_slowdown)
+                    sleep_time = int(float(json_data["time_cost(s)"])*1000000/GPU_SPEED_UP*LLM_SIZE_SCALING)
                     time_start=time.time() 
                     delayMicrosecond(sleep_time)
                     time_interval=int((time.time() - time_start)*1000000)
@@ -369,7 +361,7 @@ def foward_trace(recv_queue:Queue, send_queue:Queue, pid:int,
             delayMicrosecond(100)
 
         all_time += int((time.time() - all_stime)*1000000)
-        TPOT = (all_time-TTFT)/(generate_tokens_num-1)/BATCH_SIZE
+        TPOT = (all_time-TTFT)/(generate_tokens_num-1)
   
         print("PrInfo: pid=",pid," s_id=",session_id," Q_id=",q_id,end="  ")
         print("all:",int(all_time/1000)/1000,"s",end="  ")
