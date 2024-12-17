@@ -28,10 +28,16 @@ flexllmgen/apps/data_wrangle/core
 
 # log files
 *.tsv
-*.log
+# *.log
 *.raw
 
 # tmp scripts
 today_job.sh
-*.pt
 *.h5
+
+Traceback/__pycache__/
+Traceback/kvcache/
+Traceback/test_dir/*/*.json
+Traceback/test_dir/*/*.log
+Traceback/test_dir/test.sh
+Traceback/test_dir/test.log

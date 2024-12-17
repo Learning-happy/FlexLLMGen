@@ -6,7 +6,10 @@ import random
 from multiprocessing import Process,Pool,Pipe,Queue,Manager
 import mmap
 import os
+import sys
 import ctypes
+
+READ_PARAMETERS = False
 
 # 目标GPU与原GPU的推理性能之比（原GPU：录制trace文件的GPU），默认为 1
 # 4090:2 V100:3 A100:8 H800:50
@@ -548,6 +551,30 @@ def run__process():
     [p.join() for p in my_process]
   
 if __name__ =='__main__':
+    if len(sys.argv) > 1:
+        PARAMETERS_PATH = str(sys.argv[1])
+        print("PARAMETERS_PATH:",PARAMETERS_PATH)
+        with open(PARAMETERS_PATH, 'r', encoding='utf-8') as pp:
+            json_datas = json.load(pp)
+            print(json_datas)
+            GPU_SPEED_UP = json_datas["GPU_SPEED_UP"]
+            LLM_SIZE_SCALING = json_datas["LLM_SIZE_SCALING"]
+            GPU_NUM = json_datas["GPU_NUM"]
+            MAX_Q = json_datas["MAX_Q"]
+            BATCH_SIZE = json_datas["BATCH_SIZE"]
+            batch_slowdown = json_datas["batch_slowdown"]
+            HEAD_NUM = json_datas["HEAD_NUM"]
+            WEIGHT_DEM = json_datas["WEIGHT_DEM"] * LLM_SIZE_SCALING
+            MAX_ATT_LAYER_ID = json_datas["MAX_ATT_LAYER_ID"]
+            ATT_LAYER_NUM = json_datas["ATT_LAYER_NUM"]
+            MAX_TOKENS = json_datas["MAX_TOKENS"]
+            KVPATH = json_datas["KVPATH"]
+            json_path = json_datas["json_path"]     
+
+            oneCache=torch.ones([1,1,HEAD_NUM,WEIGHT_DEM],dtype=torch.float16,device="cpu")
+            Max_KVcache=torch.ones([ATT_LAYER_NUM,MAX_TOKENS,HEAD_NUM,WEIGHT_DEM],dtype=torch.float16,device="cpu")
+            json_metapath = json_path + "q_num_for_every_session.json"
+
     run__process()  # 正确做法：主线程只能写在 if内部
 
 
