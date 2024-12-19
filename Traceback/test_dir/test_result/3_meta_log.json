@@ -1,0 +1,194 @@
+[
+    {
+        "comp_time": 14.764,
+        "IO_wait_time": 2.824,
+        "R_time": 0.039,
+        "W_time": 0.497,
+        "CP_time": 0.035,
+        "all_q_time": 18.756,
+        "all_time": 18.834,
+        "submit_comp_time": 17.28,
+        "submit_R_time": 0.62,
+        "submit_W_time": 0.646,
+        "submit_r_size": 285.296,
+        "submit_w_size": 492.0,
+        "TTFT": 0.165,
+        "TPOT": 0.297,
+        "generate_tokens_num": 64,
+        "device": [
+            "md0",
+            "nvme0n1",
+            "nvme1n1",
+            "nvme2n1",
+            "nvme3n1"
+        ],
+        "MB_read": [
+            0.0,
+            0.0,
+            2.074,
+            2.082,
+            2.078
+        ],
+        "MB_wrtn": [
+            4.16,
+            4.163,
+            1.346,
+            1.471,
+            1.35
+        ]
+    },
+    {
+        "comp_time": 14.764,
+        "IO_wait_time": 2.856,
+        "R_time": 0.044,
+        "W_time": 0.435,
+        "CP_time": 0.035,
+        "all_q_time": 18.757,
+        "all_time": 18.835,
+        "submit_comp_time": 17.312,
+        "submit_R_time": 0.636,
+        "submit_W_time": 0.642,
+        "submit_r_size": 285.296,
+        "submit_w_size": 492.0,
+        "TTFT": 0.165,
+        "TPOT": 0.297,
+        "generate_tokens_num": 64,
+        "device": [
+            "nvme4n1"
+        ],
+        "MB_read": [
+            0.0
+        ],
+        "MB_wrtn": [
+            5.511
+        ]
+    },
+    {
+        "comp_time": 14.764,
+        "IO_wait_time": 4.388,
+        "R_time": 0.042,
+        "W_time": 0.423,
+        "CP_time": 0.035,
+        "all_q_time": 21.579,
+        "all_time": 11.088,
+        "submit_comp_time": 19.247,
+        "submit_R_time": 1.058,
+        "submit_W_time": 1.132,
+        "submit_r_size": 285.296,
+        "submit_w_size": 492.0,
+        "TTFT": 0.189,
+        "TPOT": 0.341,
+        "generate_tokens_num": 64,
+        "device": [
+            "md0",
+            "nvme0n1",
+            "nvme1n1",
+            "nvme2n1",
+            "nvme3n1"
+        ],
+        "MB_read": [
+            0.0,
+            0.0,
+            0.05,
+            0.042,
+            0.046
+        ],
+        "MB_wrtn": [
+            4.14,
+            4.143,
+            1.346,
+            1.346,
+            1.456
+        ]
+    },
+    {
+        "comp_time": 14.764,
+        "IO_wait_time": 4.309,
+        "R_time": 0.047,
+        "W_time": 0.427,
+        "CP_time": 0.035,
+        "all_q_time": 21.212,
+        "all_time": 10.879,
+        "submit_comp_time": 19.069,
+        "submit_R_time": 1.008,
+        "submit_W_time": 1.02,
+        "submit_r_size": 285.296,
+        "submit_w_size": 492.0,
+        "TTFT": 0.18,
+        "TPOT": 0.336,
+        "generate_tokens_num": 64,
+        "device": [
+            "nvme4n1"
+        ],
+        "MB_read": [
+            0.003
+        ],
+        "MB_wrtn": [
+            9.136
+        ]
+    },
+    {
+        "comp_time": 14.767,
+        "IO_wait_time": 7.408,
+        "R_time": 0.071,
+        "W_time": 0.612,
+        "CP_time": 0.035,
+        "all_q_time": 24.86,
+        "all_time": 12.905,
+        "submit_comp_time": 21.468,
+        "submit_R_time": 1.47,
+        "submit_W_time": 1.646,
+        "submit_r_size": 285.296,
+        "submit_w_size": 492.0,
+        "TTFT": 0.225,
+        "TPOT": 0.393,
+        "generate_tokens_num": 64,
+        "device": [
+            "md0",
+            "nvme0n1",
+            "nvme1n1",
+            "nvme2n1",
+            "nvme3n1"
+        ],
+        "MB_read": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "MB_wrtn": [
+            4.171,
+            4.166,
+            1.362,
+            1.354,
+            1.471
+        ]
+    },
+    {
+        "comp_time": 14.768,
+        "IO_wait_time": 7.746,
+        "R_time": 0.089,
+        "W_time": 0.555,
+        "CP_time": 0.035,
+        "all_q_time": 26.11,
+        "all_time": 13.383,
+        "submit_comp_time": 22.37,
+        "submit_R_time": 1.686,
+        "submit_W_time": 1.838,
+        "submit_r_size": 285.296,
+        "submit_w_size": 492.0,
+        "TTFT": 0.277,
+        "TPOT": 0.412,
+        "generate_tokens_num": 64,
+        "device": [
+            "nvme4n1"
+        ],
+        "MB_read": [
+            0.0
+        ],
+        "MB_wrtn": [
+            6.46
+        ]
+    }
+]

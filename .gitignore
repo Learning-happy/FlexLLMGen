@@ -37,7 +37,6 @@ today_job.sh
 
 Traceback/__pycache__/
 Traceback/kvcache/
-Traceback/test_dir/*/*.json
-Traceback/test_dir/*/*.log
+Traceback/test_dir/batch_test/
 Traceback/test_dir/test.sh
 Traceback/test_dir/test.log

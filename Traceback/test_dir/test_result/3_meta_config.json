@@ -1,0 +1,602 @@
+[
+    {
+        "test_id": 0,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/0.tpl"
+    },
+    {
+        "test_id": 1,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/1.tpl"
+    },
+    {
+        "test_id": 2,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/2.tpl"
+    },
+    {
+        "test_id": 3,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/3.tpl"
+    },
+    {
+        "test_id": 4,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/4.tpl"
+    },
+    {
+        "test_id": 5,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/5.tpl"
+    },
+    {
+        "test_id": 6,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/6.tpl"
+    },
+    {
+        "test_id": 7,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/7.tpl"
+    },
+    {
+        "test_id": 8,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/8.tpl"
+    },
+    {
+        "test_id": 9,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/9.tpl"
+    },
+    {
+        "test_id": 10,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/10.tpl"
+    },
+    {
+        "test_id": 11,
+        "GPU_SPEED_UP": 1,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/11.tpl"
+    },
+    {
+        "test_id": 12,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/12.tpl"
+    },
+    {
+        "test_id": 13,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/13.tpl"
+    },
+    {
+        "test_id": 14,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/14.tpl"
+    },
+    {
+        "test_id": 15,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/15.tpl"
+    },
+    {
+        "test_id": 16,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/16.tpl"
+    },
+    {
+        "test_id": 17,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 1,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/17.tpl"
+    },
+    {
+        "test_id": 18,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/18.tpl"
+    },
+    {
+        "test_id": 19,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 1,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/19.tpl"
+    },
+    {
+        "test_id": 20,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/20.tpl"
+    },
+    {
+        "test_id": 21,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 2,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/21.tpl"
+    },
+    {
+        "test_id": 22,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/md0/kvcache/",
+            [
+                "md0",
+                "nvme0n1",
+                "nvme1n1",
+                "nvme2n1",
+                "nvme3n1"
+            ]
+        ],
+        "log_path": "./batch_test/22.tpl"
+    },
+    {
+        "test_id": 23,
+        "GPU_SPEED_UP": 3,
+        "LLM_SIZE_SCALING": 5,
+        "GPU_NUM": 4,
+        "MAX_Q": 2,
+        "TRACE_FILE_PARAMETERS": [
+            32,
+            64,
+            48,
+            24,
+            "/home/femu/FlexLLMGen/Tracefile/",
+            1
+        ],
+        "MAX_TOKENS": 1024,
+        "KVCACHE_STORE_INFO": [
+            "/mnt/ssd/kvcache/",
+            [
+                "nvme4n1"
+            ]
+        ],
+        "log_path": "./batch_test/23.tpl"
+    }
+]

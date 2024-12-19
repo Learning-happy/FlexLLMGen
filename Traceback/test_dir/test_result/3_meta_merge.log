@@ -1,0 +1,94 @@
+system_info:
+{
+    "CPU Cores": 32,
+    "Memory Size": "7.752 GB",
+    "Disks": {
+        "NAME": {
+            "type": "FSTYPE",
+            "size": "SIZE"
+        },
+        "└─sda2": {
+            "type": "ext4",
+            "size": "80G"
+        },
+        "nvme1n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        },
+        "└─md0": {
+            "type": "ext4",
+            "size": "36G"
+        },
+        "nvme2n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        },
+        "nvme3n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        },
+        "nvme4n1": {
+            "type": "ext4",
+            "size": "48G"
+        },
+        "nvme0n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        }
+    }
+}
+
+ALL_run_time:18.834s  TTFT(mean):0.165s  TPOP(mean):0.297s
+CPU:14.764s  ( IO_wait:2.824s  R:0.039s  W:0.497s  CP:0.035s)  => all_qtime:18.756s
+ALL_io_submit    MB_R=285.296  MB_w=492.0
+md0  MB_read=0.0	 MB_wrtn=4.16
+nvme0n1  MB_read=0.0	 MB_wrtn=4.163
+nvme1n1  MB_read=2.074	 MB_wrtn=1.346
+nvme2n1  MB_read=2.082	 MB_wrtn=1.471
+nvme3n1  MB_read=2.078	 MB_wrtn=1.35
+{'test_id': 0, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': 2, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/FlexLLMGen/Tracefile/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']], 'log_path': './batch_test/0.tpl'}
+
+ALL_run_time:18.835s  TTFT(mean):0.165s  TPOP(mean):0.297s
+CPU:14.764s  ( IO_wait:2.856s  R:0.044s  W:0.435s  CP:0.035s)  => all_qtime:18.757s
+ALL_io_submit    MB_R=285.296  MB_w=492.0
+nvme4n1  MB_read=0.0	 MB_wrtn=5.511
+{'test_id': 1, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': 2, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/FlexLLMGen/Tracefile/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']], 'log_path': './batch_test/1.tpl'}
+
+.................................................
+
+ALL_run_time:11.088s  TTFT(mean):0.189s  TPOP(mean):0.341s
+CPU:14.764s  ( IO_wait:4.388s  R:0.042s  W:0.423s  CP:0.035s)  => all_qtime:21.579s
+ALL_io_submit    MB_R=285.296  MB_w=492.0
+md0  MB_read=0.0	 MB_wrtn=4.14
+nvme0n1  MB_read=0.0	 MB_wrtn=4.143
+nvme1n1  MB_read=0.05	 MB_wrtn=1.346
+nvme2n1  MB_read=0.042	 MB_wrtn=1.346
+nvme3n1  MB_read=0.046	 MB_wrtn=1.456
+{'test_id': 2, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': 2, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/FlexLLMGen/Tracefile/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']], 'log_path': './batch_test/2.tpl'}
+
+ALL_run_time:10.879s  TTFT(mean):0.18s  TPOP(mean):0.336s
+CPU:14.764s  ( IO_wait:4.309s  R:0.047s  W:0.427s  CP:0.035s)  => all_qtime:21.212s
+ALL_io_submit    MB_R=285.296  MB_w=492.0
+nvme4n1  MB_read=0.003	 MB_wrtn=9.136
+{'test_id': 3, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': 2, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/FlexLLMGen/Tracefile/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']], 'log_path': './batch_test/3.tpl'}
+
+.................................................
+
+ALL_run_time:12.905s  TTFT(mean):0.225s  TPOP(mean):0.393s
+CPU:14.767s  ( IO_wait:7.408s  R:0.071s  W:0.612s  CP:0.035s)  => all_qtime:24.86s
+ALL_io_submit    MB_R=285.296  MB_w=492.0
+md0  MB_read=0.0	 MB_wrtn=4.171
+nvme0n1  MB_read=0.0	 MB_wrtn=4.166
+nvme1n1  MB_read=0.0	 MB_wrtn=1.362
+nvme2n1  MB_read=0.0	 MB_wrtn=1.354
+nvme3n1  MB_read=0.0	 MB_wrtn=1.471
+{'test_id': 4, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': 2, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/FlexLLMGen/Tracefile/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']], 'log_path': './batch_test/4.tpl'}
+
+ALL_run_time:13.383s  TTFT(mean):0.277s  TPOP(mean):0.412s
+CPU:14.768s  ( IO_wait:7.746s  R:0.089s  W:0.555s  CP:0.035s)  => all_qtime:26.11s
+ALL_io_submit    MB_R=285.296  MB_w=492.0
+nvme4n1  MB_read=0.0	 MB_wrtn=6.46
+{'test_id': 5, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': 2, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/FlexLLMGen/Tracefile/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']], 'log_path': './batch_test/5.tpl'}
+
+.................................................
+

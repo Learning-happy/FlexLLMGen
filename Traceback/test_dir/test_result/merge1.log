@@ -1,3 +1,5 @@
+system_info:{'CPU Cores': 32, 'Memory Size': '7.752 GB', 'Disks': {'NAME': {'type': 'FSTYPE', 'size': 'SIZE'}, '└─sda2': {'type': 'ext4', 'size': '80G'}, 'nvme1n1': {'type': 'linux_raid_member', 'size': '12G'}, '└─md0': {'type': 'ext4', 'size': '36G'}, 'nvme2n1': {'type': 'linux_raid_member', 'size': '12G'}, 'nvme3n1': {'type': 'linux_raid_member', 'size': '12G'}, 'nvme4n1': {'type': 'ext4', 'size': '48G'}, 'nvme0n1': {'type': 'linux_raid_member', 'size': '12G'}}}
+
     ALL run_time 126.323 s
     CPU: 104.512 s   ( IO_wait: 16.679 s  R: 0.422 s  W: 3.116 s  CP: 0.573 s)  all_qtime: 126.198 s
     TTFT(mean): 0.286 s  TPOP(mean): 0.281 s
@@ -528,8 +530,243 @@
     TTFT(mean): 37.71 s  TPOP(mean): 0.915 s
     {'test_id': 105, 'GPU_SPEED_UP': 3, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
 
-    【lack】
-    【lack】
-   【lack】
+    ALL run_time 7127.546 s
+    CPU: 696.752 s   ( IO_wait: 98625.061 s  R: 8277.48 s  W: 15086.851 s  CP: 367.276 s)  all_qtime: 23812.825 s
+    TTFT(mean): 34.313 s  TPOP(mean): 1.68 s
     {'test_id': 106, 'GPU_SPEED_UP': 3, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 6155.226 s
+    CPU: 696.799 s   ( IO_wait: 63137.073 s  R: 16811.604 s  W: 2643.539 s  CP: 367.276 s)  all_qtime: 19896.573 s
+    TTFT(mean): 28.983 s  TPOP(mean): 1.403 s
+    {'test_id': 107, 'GPU_SPEED_UP': 3, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 39.499 s
+    CPU: 13.055 s   ( IO_wait: 26.688 s  R: 0.408 s  W: 3.708 s  CP: 0.573 s)  all_qtime: 39.369 s
+    TTFT(mean): 0.117 s  TPOP(mean): 0.086 s
+    {'test_id': 108, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 36.487 s
+    CPU: 13.054 s   ( IO_wait: 18.307 s  R: 0.457 s  W: 3.14 s  CP: 0.573 s)  all_qtime: 36.42 s
+    TTFT(mean): 0.105 s  TPOP(mean): 0.08 s
+    {'test_id': 109, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 59.606 s
+    CPU: 13.055 s   ( IO_wait: 198.05 s  R: 3.556 s  W: 26.611 s  CP: 4.59 s)  all_qtime: 59.529 s
+    TTFT(mean): 0.147 s  TPOP(mean): 0.016 s
+    {'test_id': 110, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 59.364 s
+    CPU: 13.055 s   ( IO_wait: 185.434 s  R: 3.668 s  W: 25.407 s  CP: 4.59 s)  all_qtime: 59.244 s
+    TTFT(mean): 0.151 s  TPOP(mean): 0.016 s
+    {'test_id': 111, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 164.744 s
+    CPU: 13.055 s   ( IO_wait: 633.974 s  R: 16.065 s  W: 102.393 s  CP: 18.363 s)  all_qtime: 164.661 s
+    TTFT(mean): 0.266 s  TPOP(mean): 0.011 s
+    {'test_id': 112, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 153.94 s
+    CPU: 13.056 s   ( IO_wait: 552.254 s  R: 19.429 s  W: 90.263 s  CP: 18.363 s)  all_qtime: 153.876 s
+    TTFT(mean): 0.293 s  TPOP(mean): 0.01 s
+    {'test_id': 113, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 24.733 s
+    CPU: 13.057 s   ( IO_wait: 35.207 s  R: 0.468 s  W: 3.698 s  CP: 0.573 s)  all_qtime: 43.457 s
+    TTFT(mean): 0.129 s  TPOP(mean): 0.095 s
+    {'test_id': 114, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 24.575 s
+    CPU: 13.061 s   ( IO_wait: 41.479 s  R: 0.536 s  W: 3.654 s  CP: 0.573 s)  all_qtime: 48.117 s
+    TTFT(mean): 0.141 s  TPOP(mean): 0.106 s
+    {'test_id': 115, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 56.499 s
+    CPU: 13.056 s   ( IO_wait: 408.685 s  R: 6.014 s  W: 47.831 s  CP: 4.59 s)  all_qtime: 110.378 s
+    TTFT(mean): 0.203 s  TPOP(mean): 0.03 s
+    {'test_id': 116, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 56.288 s
+    CPU: 13.056 s   ( IO_wait: 408.531 s  R: 6.428 s  W: 46.123 s  CP: 4.59 s)  all_qtime: 111.379 s
+    TTFT(mean): 0.209 s  TPOP(mean): 0.031 s
+    {'test_id': 117, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 95.719 s
+    CPU: 13.055 s   ( IO_wait: 719.834 s  R: 16.272 s  W: 105.624 s  CP: 18.363 s)  all_qtime: 186.662 s
+    TTFT(mean): 0.311 s  TPOP(mean): 0.013 s
+    {'test_id': 118, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 92.18 s
+    CPU: 13.063 s   ( IO_wait: 645.506 s  R: 19.189 s  W: 95.479 s  CP: 18.363 s)  all_qtime: 177.043 s
+    TTFT(mean): 0.33 s  TPOP(mean): 0.012 s
+    {'test_id': 119, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 47.788 s
+    CPU: 13.089 s   ( IO_wait: 362.33 s  R: 1.474 s  W: 10.673 s  CP: 0.573 s)  all_qtime: 179.678 s
+    TTFT(mean): 0.349 s  TPOP(mean): 0.402 s
+    {'test_id': 120, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 64.581 s
+    CPU: 13.09 s   ( IO_wait: 371.662 s  R: 1.59 s  W: 10.489 s  CP: 0.573 s)  all_qtime: 189.64 s
+    TTFT(mean): 0.376 s  TPOP(mean): 0.424 s
+    {'test_id': 121, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 62.302 s
+    CPU: 13.086 s   ( IO_wait: 723.249 s  R: 8.727 s  W: 75.292 s  CP: 4.59 s)  all_qtime: 214.751 s
+    TTFT(mean): 0.352 s  TPOP(mean): 0.06 s
+    {'test_id': 122, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 62.182 s
+    CPU: 13.09 s   ( IO_wait: 709.918 s  R: 9.569 s  W: 71.438 s  CP: 4.59 s)  all_qtime: 217.323 s
+    TTFT(mean): 0.342 s  TPOP(mean): 0.061 s
+    {'test_id': 123, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 91.282 s
+    CPU: 13.07 s   ( IO_wait: 1214.523 s  R: 21.501 s  W: 175.802 s  CP: 18.363 s)  all_qtime: 310.284 s
+    TTFT(mean): 0.618 s  TPOP(mean): 0.021 s
+    {'test_id': 124, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 72.815 s
+    CPU: 13.063 s   ( IO_wait: 958.517 s  R: 22.943 s  W: 127.504 s  CP: 18.363 s)  all_qtime: 251.973 s
+    TTFT(mean): 0.441 s  TPOP(mean): 0.017 s
+    {'test_id': 125, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 91.356 s
+    CPU: 65.31 s   ( IO_wait: 46.912 s  R: 2.1 s  W: 13.72 s  CP: 2.869 s)  all_qtime: 91.296 s
+    TTFT(mean): 0.206 s  TPOP(mean): 0.203 s
+    {'test_id': 126, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 89.075 s
+    CPU: 65.31 s   ( IO_wait: 31.988 s  R: 2.116 s  W: 11.153 s  CP: 2.869 s)  all_qtime: 89.01 s
+    TTFT(mean): 0.204 s  TPOP(mean): 0.198 s
+    {'test_id': 127, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 175.645 s
+    CPU: 65.311 s   ( IO_wait: 512.533 s  R: 21.173 s  W: 102.009 s  CP: 22.954 s)  all_qtime: 175.592 s
+    TTFT(mean): 0.299 s  TPOP(mean): 0.049 s
+    {'test_id': 128, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 162.454 s
+    CPU: 65.311 s   ( IO_wait: 464.567 s  R: 20.269 s  W: 88.814 s  CP: 22.954 s)  all_qtime: 162.324 s
+    TTFT(mean): 0.288 s  TPOP(mean): 0.045 s
+    {'test_id': 129, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 637.87 s
+    CPU: 65.311 s   ( IO_wait: 2309.524 s  R: 101.975 s  W: 415.843 s  CP: 91.819 s)  all_qtime: 637.801 s
+    TTFT(mean): 1.718 s  TPOP(mean): 0.044 s
+    {'test_id': 130, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 828.927 s
+    CPU: 65.311 s   ( IO_wait: 3254.004 s  R: 102.85 s  W: 606.436 s  CP: 91.819 s)  all_qtime: 828.871 s
+    TTFT(mean): 1.435 s  TPOP(mean): 0.058 s
+    {'test_id': 131, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 52.687 s
+    CPU: 65.311 s   ( IO_wait: 56.543 s  R: 2.451 s  W: 13.423 s  CP: 2.869 s)  all_qtime: 104.366 s
+    TTFT(mean): 0.23 s  TPOP(mean): 0.233 s
+    {'test_id': 132, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 54.795 s
+    CPU: 65.311 s   ( IO_wait: 45.258 s  R: 2.471 s  W: 12.781 s  CP: 2.869 s)  all_qtime: 106.399 s
+    TTFT(mean): 0.242 s  TPOP(mean): 0.237 s
+    {'test_id': 133, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 101.127 s
+    CPU: 65.312 s   ( IO_wait: 611.455 s  R: 20.552 s  W: 113.037 s  CP: 22.954 s)  all_qtime: 201.614 s
+    TTFT(mean): 0.337 s  TPOP(mean): 0.056 s
+    {'test_id': 134, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 98.315 s
+    CPU: 65.311 s   ( IO_wait: 526.713 s  R: 19.643 s  W: 107.018 s  CP: 22.954 s)  all_qtime: 195.786 s
+    TTFT(mean): 0.344 s  TPOP(mean): 0.055 s
+    {'test_id': 135, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 563.045 s
+    CPU: 65.319 s   ( IO_wait: 4232.4 s  R: 132.682 s  W: 808.159 s  CP: 91.819 s)  all_qtime: 1071.21 s
+    TTFT(mean): 2.973 s  TPOP(mean): 0.074 s
+    {'test_id': 136, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 843.32 s
+    CPU: 65.316 s   ( IO_wait: 6851.865 s  R: 252.341 s  W: 1248.165 s  CP: 91.819 s)  all_qtime: 1634.938 s
+    TTFT(mean): 9.444 s  TPOP(mean): 0.108 s
+    {'test_id': 137, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 56.869 s
+    CPU: 65.426 s   ( IO_wait: 279.734 s  R: 5.974 s  W: 38.726 s  CP: 2.869 s)  all_qtime: 201.779 s
+    TTFT(mean): 0.381 s  TPOP(mean): 0.452 s
+    {'test_id': 138, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 57.955 s
+    CPU: 65.348 s   ( IO_wait: 251.843 s  R: 5.137 s  W: 37.414 s  CP: 2.869 s)  all_qtime: 200.108 s
+    TTFT(mean): 0.393 s  TPOP(mean): 0.448 s
+    {'test_id': 139, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 96.836 s
+    CPU: 65.338 s   ( IO_wait: 1065.412 s  R: 24.731 s  W: 194.186 s  CP: 22.954 s)  all_qtime: 339.518 s
+    TTFT(mean): 0.436 s  TPOP(mean): 0.096 s
+    {'test_id': 140, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 96.304 s
+    CPU: 65.337 s   ( IO_wait: 1042.186 s  R: 24.136 s  W: 195.449 s  CP: 22.954 s)  all_qtime: 339.444 s
+    TTFT(mean): 0.452 s  TPOP(mean): 0.095 s
+    {'test_id': 141, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 1549.185 s
+    CPU: 65.313 s   ( IO_wait: 22813.334 s  R: 940.809 s  W: 4086.581 s  CP: 91.819 s)  all_qtime: 5197.955 s
+    TTFT(mean): 8.257 s  TPOP(mean): 0.365 s
+    {'test_id': 142, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 1005.122 s
+    CPU: 65.319 s   ( IO_wait: 11999.291 s  R: 506.849 s  W: 2158.221 s  CP: 91.819 s)  all_qtime: 2830.26 s
+    TTFT(mean): 25.889 s  TPOP(mean): 0.177 s
+    {'test_id': 143, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 4, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 288.732 s
+    CPU: 261.279 s   ( IO_wait: 135.197 s  R: 10.831 s  W: 46.135 s  CP: 11.477 s)  all_qtime: 288.682 s
+    TTFT(mean): 0.59 s  TPOP(mean): 0.646 s
+    {'test_id': 144, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 289.983 s
+    CPU: 261.301 s   ( IO_wait: 129.564 s  R: 11.347 s  W: 46.492 s  CP: 11.477 s)  all_qtime: 289.922 s
+    TTFT(mean): 0.606 s  TPOP(mean): 0.648 s
+    {'test_id': 145, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 616.821 s
+    CPU: 261.277 s   ( IO_wait: 1878.374 s  R: 98.392 s  W: 397.368 s  CP: 91.819 s)  all_qtime: 616.699 s
+    TTFT(mean): 1.326 s  TPOP(mean): 0.172 s
+    {'test_id': 146, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 903.385 s
+    CPU: 261.279 s   ( IO_wait: 3173.672 s  R: 101.881 s  W: 679.152 s  CP: 91.819 s)  all_qtime: 903.29 s
+    TTFT(mean): 1.409 s  TPOP(mean): 0.254 s
+    {'test_id': 147, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 6542.654 s
+    CPU: 261.277 s   ( IO_wait: 22614.836 s  R: 4115.082 s  W: 2026.264 s  CP: 367.276 s)  all_qtime: 6542.569 s
+    TTFT(mean): 10.981 s  TPOP(mean): 0.46 s
+    {'test_id': 148, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 6556.037 s
+    CPU: 261.294 s   ( IO_wait: 24880.245 s  R: 2911.265 s  W: 3245.361 s  CP: 367.276 s)  all_qtime: 6555.903 s
+    TTFT(mean): 12.532 s  TPOP(mean): 0.459 s
+    {'test_id': 149, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 1, 'MAX_Q': -1, 'BATCH_SIZE': 32, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 155.709 s
+    CPU: 261.275 s   ( IO_wait: 139.98 s  R: 11.271 s  W: 48.806 s  CP: 11.477 s)  all_qtime: 307.637 s
+    TTFT(mean): 0.624 s  TPOP(mean): 0.688 s
+    {'test_id': 150, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 152.373 s
+    CPU: 261.3 s   ( IO_wait: 127.259 s  R: 10.606 s  W: 49.35 s  CP: 11.477 s)  all_qtime: 303.185 s
+    TTFT(mean): 0.605 s  TPOP(mean): 0.679 s
+    {'test_id': 151, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 1, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 651.47 s
+    CPU: 261.277 s   ( IO_wait: 4987.487 s  R: 139.565 s  W: 1024.498 s  CP: 91.819 s)  all_qtime: 1295.302 s
+    TTFT(mean): 3.451 s  TPOP(mean): 0.359 s
+    {'test_id': 152, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/md0/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
+
+    ALL run_time 967.327 s
+    CPU: 261.28 s   ( IO_wait: 7154.484 s  R: 234.515 s  W: 1420.973 s  CP: 91.819 s)  all_qtime: 1786.356 s
+    TTFT(mean): 10.217 s  TPOP(mean): 0.473 s
+    {'test_id': 153, 'GPU_SPEED_UP': 8, 'LLM_SIZE_SCALING': 20, 'GPU_NUM': 2, 'MAX_Q': -1, 'BATCH_SIZE': 8, 'batch_slowdown': 1, 'HEAD_NUM': 32, 'WEIGHT_DEM': 64, 'MAX_ATT_LAYER_ID': 48, 'ATT_LAYER_NUM': 24, 'MAX_TOKENS': 512, 'KVPATH': '/mnt/ssd/kvcache/', 'json_path': '/home/femu/FlexLLMGen/Tracefile/'}
 

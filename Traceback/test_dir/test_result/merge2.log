@@ -1,0 +1,254 @@
+system_info:
+{
+    "CPU Cores": 32,
+    "Memory Size": "7.752 GB",
+    "Disks": {
+        "NAME": {
+            "type": "FSTYPE",
+            "size": "SIZE"
+        },
+        "└─sda2": {
+            "type": "ext4",
+            "size": "80G"
+        },
+        "nvme1n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        },
+        "└─md0": {
+            "type": "ext4",
+            "size": "36G"
+        },
+        "nvme2n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        },
+        "nvme3n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        },
+        "nvme4n1": {
+            "type": "ext4",
+            "size": "48G"
+        },
+        "nvme0n1": {
+            "type": "linux_raid_member",
+            "size": "12G"
+        }
+    }
+}
+
+    ALL run_time 545.148 s  TTFT(mean): 0.81 s  TPOP(mean): 0.126 s
+    CPU: 477.474 s   ( IO_wait: 636.055 s  R: 71.244 s  W: 160.493 s  CP: 101.53 s)  all_qtime: 545.078 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    md0   MB_read= 0.078 	 MB_wrtn= 5756.203
+    nvme0n1   MB_read= 49.195 	 MB_wrtn= 2325.593
+    nvme1n1   MB_read= 73.109 	 MB_wrtn= 2306.585
+    nvme2n1   MB_read= 475.867 	 MB_wrtn= 1882.566
+    nvme3n1   MB_read= 729.019 	 MB_wrtn= 1614.464
+{'test_id': 0, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 558.834 s  TTFT(mean): 0.832 s  TPOP(mean): 0.129 s
+    CPU: 477.452 s   ( IO_wait: 664.139 s  R: 70.155 s  W: 175.48 s  CP: 101.53 s)  all_qtime: 558.765 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    nvme4n1   MB_read= 81.183 	 MB_wrtn= 6461.574
+{'test_id': 1, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................
+
+    ALL run_time 686.114 s  TTFT(mean): 0.969 s  TPOP(mean): 1.27 s
+    CPU: 642.545 s   ( IO_wait: 168.256 s  R: 21.659 s  W: 38.966 s  CP: 33.375 s)  all_qtime: 686.009 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    md0   MB_read= 0.0 	 MB_wrtn= 5655.921
+    nvme0n1   MB_read= 95.972 	 MB_wrtn= 2004.286
+    nvme1n1   MB_read= 104.425 	 MB_wrtn= 1998.75
+    nvme2n1   MB_read= 159.039 	 MB_wrtn= 1939.684
+    nvme3n1   MB_read= 279.742 	 MB_wrtn= 1816.805
+{'test_id': 2, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 689.671 s  TTFT(mean): 0.976 s  TPOP(mean): 1.276 s
+    CPU: 642.54 s   ( IO_wait: 159.364 s  R: 22.26 s  W: 42.061 s  CP: 33.375 s)  all_qtime: 689.571 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    nvme4n1   MB_read= 0.023 	 MB_wrtn= 4725.621
+{'test_id': 3, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+................................................. 【mark】
+
+    ALL run_time 312.94 s  TTFT(mean): 0.797 s  TPOP(mean): 0.137 s
+    CPU: 477.477 s   ( IO_wait: 810.335 s  R: 78.66 s  W: 215.441 s  CP: 101.53 s)  all_qtime: 591.607 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    md0   MB_read= 0.074 	 MB_wrtn= 35785.46
+    nvme0n1   MB_read= 353.234 	 MB_wrtn= 12875.797
+    nvme1n1   MB_read= 196.117 	 MB_wrtn= 13024.594
+    nvme2n1   MB_read= 963.558 	 MB_wrtn= 12169.84
+    nvme3n1   MB_read= 2197.375 	 MB_wrtn= 10928.008
+{'test_id': 4, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 696.116 s  TTFT(mean): 1.392 s  TPOP(mean): 0.316 s
+    CPU: 477.481 s   ( IO_wait: 4643.102 s  R: 95.729 s  W: 990.09 s  CP: 101.53 s)  all_qtime: 1359.339 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    nvme4n1   MB_read= 3.101 	 MB_wrtn= 80046.011
+{'test_id': 5, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................
+
+    ALL run_time 371.784 s  TTFT(mean): 0.984 s  TPOP(mean): 1.298 s
+    CPU: 642.546 s   ( IO_wait: 173.297 s  R: 22.6 s  W: 42.967 s  CP: 33.375 s)  all_qtime: 701.285 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    md0   MB_read= 0.011 	 MB_wrtn= 6026.878
+    nvme0n1   MB_read= 90.976 	 MB_wrtn= 2144.593
+    nvme1n1   MB_read= 110.632 	 MB_wrtn= 2123.812
+    nvme2n1   MB_read= 170.031 	 MB_wrtn= 2069.085
+    nvme3n1   MB_read= 309.066 	 MB_wrtn= 1927.937
+{'test_id': 6, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 375.745 s  TTFT(mean): 0.984 s  TPOP(mean): 1.31 s
+    CPU: 642.544 s   ( IO_wait: 159.861 s  R: 21.837 s  W: 47.98 s  CP: 33.375 s)  all_qtime: 707.474 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    nvme4n1   MB_read= 0.027 	 MB_wrtn= 4888.41
+{'test_id': 7, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+................................................. 【mark】
+
+    ALL run_time 432.638 s  TTFT(mean): 3.462 s  TPOP(mean): 0.375 s
+    CPU: 477.469 s   ( IO_wait: 5950.215 s  R: 114.134 s  W: 1240.707 s  CP: 101.53 s)  all_qtime: 1644.062 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    md0   MB_read= 0.085 	 MB_wrtn= 84960.566
+    nvme0n1   MB_read= 320.257 	 MB_wrtn= 30720.111
+    nvme1n1   MB_read= 354.832 	 MB_wrtn= 30679.599
+    nvme2n1   MB_read= 2708.816 	 MB_wrtn= 28273.404
+    nvme3n1   MB_read= 4643.273 	 MB_wrtn= 26322.083
+{'test_id': 8, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 1074.724 s  TTFT(mean): 24.765 s  TPOP(mean): 0.877 s
+    CPU: 477.458 s   ( IO_wait: 17354.143 s  R: 464.625 s  W: 3412.995 s  CP: 101.53 s)  all_qtime: 4118.577 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    nvme4n1   MB_read= 295.429 	 MB_wrtn= 143325.734
+{'test_id': 9, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................
+
+    ALL run_time 230.408 s  TTFT(mean): 1.076 s  TPOP(mean): 1.449 s
+    CPU: 642.551 s   ( IO_wait: 286.616 s  R: 24.743 s  W: 69.085 s  CP: 33.375 s)  all_qtime: 782.156 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    md0   MB_read= 0.027 	 MB_wrtn= 13657.667
+    nvme0n1   MB_read= 160.714 	 MB_wrtn= 4662.391
+    nvme1n1   MB_read= 131.136 	 MB_wrtn= 4693.063
+    nvme2n1   MB_read= 162.925 	 MB_wrtn= 4658.653
+    nvme3n1   MB_read= 348.16 	 MB_wrtn= 4465.653
+{'test_id': 10, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 236.101 s  TTFT(mean): 1.096 s  TPOP(mean): 1.484 s
+    CPU: 642.553 s   ( IO_wait: 299.147 s  R: 25.176 s  W: 74.269 s  CP: 33.375 s)  all_qtime: 801.182 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    nvme4n1   MB_read= 0.027 	 MB_wrtn= 5768.921
+{'test_id': 11, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 4, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................【mark】
+
+    ALL run_time 775.629 s  TTFT(mean): 6.905 s  TPOP(mean): 1.033 s
+    CPU: 477.503 s   ( IO_wait: 19857.37 s  R: 147.43 s  W: 3979.757 s  CP: 101.53 s)  all_qtime: 4476.23 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    md0   MB_read= 0.085 	 MB_wrtn= 152609.886
+    nvme0n1   MB_read= 1757.527 	 MB_wrtn= 55282.332
+    nvme1n1   MB_read= 1341.57 	 MB_wrtn= 55695.843
+    nvme2n1   MB_read= 4728.386 	 MB_wrtn= 52257.738
+    nvme3n1   MB_read= 10564.851 	 MB_wrtn= 46379.898
+{'test_id': 12, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 8, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 1318.646 s  TTFT(mean): 16.785 s  TPOP(mean): 1.693 s
+    CPU: 477.511 s   ( IO_wait: 34223.571 s  R: 261.594 s  W: 6839.725 s  CP: 101.53 s)  all_qtime: 7426.894 s
+    ALL io_submit     MB_R= 682376 MB_w= 879912
+    nvme4n1   MB_read= 51.46 	 MB_wrtn= 174390.308
+{'test_id': 13, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 8, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................【mark】
+
+    ALL run_time 187.415 s  TTFT(mean): 1.556 s  TPOP(mean): 1.942 s
+    CPU: 642.597 s   ( IO_wait: 993.733 s  R: 44.256 s  W: 184.124 s  CP: 33.375 s)  all_qtime: 1050.058 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    md0   MB_read= 0.023 	 MB_wrtn= 26831.39
+    nvme0n1   MB_read= 216.425 	 MB_wrtn= 9269.746
+    nvme1n1   MB_read= 231.074 	 MB_wrtn= 9254.101
+    nvme2n1   MB_read= 379.996 	 MB_wrtn= 9101.578
+    nvme3n1   MB_read= 787.937 	 MB_wrtn= 8691.96
+{'test_id': 14, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 8, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 275.811 s  TTFT(mean): 1.663 s  TPOP(mean): 2.873 s
+    CPU: 642.61 s   ( IO_wait: 3464.172 s  R: 46.305 s  W: 697.866 s  CP: 33.375 s)  all_qtime: 1542.36 s
+    ALL io_submit     MB_R= 220311 MB_w= 293304
+    nvme4n1   MB_read= 0.027 	 MB_wrtn= 29793.832
+{'test_id': 15, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 1, 'GPU_NUM': 8, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................【mark】
+
+    ALL run_time 4140.771 s  TTFT(mean): 8.615 s  TPOP(mean): 0.947 s
+    CPU: 2387.253 s   ( IO_wait: 12622.659 s  R: 545.226 s  W: 2719.191 s  CP: 507.652 s)  all_qtime: 4140.697 s
+    ALL io_submit     MB_R= 3411882 MB_w= 4399560
+    md0   MB_read= 32090.593 	 MB_wrtn= 849582.066
+    nvme0n1   MB_read= 15822.8 	 MB_wrtn= 292521.955
+    nvme1n1   MB_read= 11808.824 	 MB_wrtn= 296391.548
+    nvme2n1   MB_read= 20153.242 	 MB_wrtn= 287821.517
+    nvme3n1   MB_read= 30658.968 	 MB_wrtn= 277030.072
+{'test_id': 16, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 6805.946 s  TTFT(mean): 13.063 s  TPOP(mean): 1.561 s
+    CPU: 2387.25 s   ( IO_wait: 25042.236 s  R: 650.011 s  W: 5171.946 s  CP: 507.652 s)  all_qtime: 6805.855 s
+    ALL io_submit     MB_R= 3411882 MB_w= 4399560
+    nvme4n1   MB_read= 15727.55 	 MB_wrtn= 884692.332
+{'test_id': 17, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................【mark】
+
+    ALL run_time 3328.438 s  TTFT(mean): 5.004 s  TPOP(mean): 6.154 s
+    CPU: 3212.695 s   ( IO_wait: 1710.151 s  R: 702.218 s  W: 323.237 s  CP: 166.875 s)  all_qtime: 3328.349 s
+    ALL io_submit     MB_R= 1101556 MB_w= 1466520
+    md0   MB_read= 8010.691 	 MB_wrtn= 250131.687
+    nvme0n1   MB_read= 5292.703 	 MB_wrtn= 85105.013
+    nvme1n1   MB_read= 4117.324 	 MB_wrtn= 86235.533
+    nvme2n1   MB_read= 4969.035 	 MB_wrtn= 85257.111
+    nvme3n1   MB_read= 7238.976 	 MB_wrtn= 82955.26
+{'test_id': 18, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 3534.466 s  TTFT(mean): 6.613 s  TPOP(mean): 6.493 s
+    CPU: 3212.691 s   ( IO_wait: 2643.074 s  R: 673.883 s  W: 510.253 s  CP: 166.875 s)  all_qtime: 3534.379 s
+    ALL io_submit     MB_R= 1101556 MB_w= 1466520
+    nvme4n1   MB_read= 4941.484 	 MB_wrtn= 241888.191
+{'test_id': 19, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 1, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................【mark】
+
+    ALL run_time 4775.716 s  TTFT(mean): 20.251 s  TPOP(mean): 2.166 s
+    CPU: 2387.267 s   ( IO_wait: 39813.927 s  R: 943.254 s  W: 7953.652 s  CP: 507.652 s)  all_qtime: 9480.244 s
+    ALL io_submit     MB_R= 3411882 MB_w= 4399560
+    md0   MB_read= 65675.355 	 MB_wrtn= 897230.386
+    nvme0n1   MB_read= 21593.82 	 MB_wrtn= 309257.582
+    nvme1n1   MB_read= 17008.027 	 MB_wrtn= 313681.535
+    nvme2n1   MB_read= 26098.207 	 MB_wrtn= 304341.339
+    nvme3n1   MB_read= 37977.632 	 MB_wrtn= 292182.253
+{'test_id': 20, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 6874.462 s  TTFT(mean): 53.685 s  TPOP(mean): 2.929 s
+    CPU: 2387.252 s   ( IO_wait: 55674.555 s  R: 2129.88 s  W: 10462.955 s  CP: 507.652 s)  all_qtime: 13264.339 s
+    ALL io_submit     MB_R= 3411882 MB_w= 4399560
+    nvme4n1   MB_read= 35241.578 	 MB_wrtn= 910363.23
+{'test_id': 21, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 64, 48, 24, '/home/femu/MoreTracefile/6sessions_opt1.3_batch8/', 8], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
+.................................................【mark】
+
+    ALL run_time 1800.871 s  TTFT(mean): 5.887 s  TPOP(mean): 6.269 s
+    CPU: 3212.704 s   ( IO_wait: 2374.562 s  R: 667.075 s  W: 506.058 s  CP: 166.875 s)  all_qtime: 3404.1 s
+    ALL io_submit     MB_R= 1101556 MB_w= 1466520
+    md0   MB_read= 6285.0 	 MB_wrtn= 284544.609
+    nvme0n1   MB_read= 6001.527 	 MB_wrtn= 97412.045
+    nvme1n1   MB_read= 4703.96 	 MB_wrtn= 98599.764
+    nvme2n1   MB_read= 6025.128 	 MB_wrtn= 97044.084
+    nvme3n1   MB_read= 9122.199 	 MB_wrtn= 93975.937
+{'test_id': 22, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/md0/kvcache/', ['md0', 'nvme0n1', 'nvme1n1', 'nvme2n1', 'nvme3n1']]}
+
+    ALL run_time 2359.879 s  TTFT(mean): 10.886 s  TPOP(mean): 8.198 s
+    CPU: 3212.699 s   ( IO_wait: 7980.167 s  R: 793.261 s  W: 1581.169 s  CP: 166.875 s)  all_qtime: 4505.851 s
+    ALL io_submit     MB_R= 1101556 MB_w= 1466520
+    nvme4n1   MB_read= 5240.824 	 MB_wrtn= 284052.257
+{'test_id': 23, 'GPU_SPEED_UP': 1, 'LLM_SIZE_SCALING': 5, 'GPU_NUM': 2, 'MAX_Q': -1, 'TRACE_FILE_PARAMETERS': [32, 128, 64, 32, '/home/femu/MoreTracefile/6sessions_opt6.7_batch1/', 1], 'MAX_TOKENS': 1024, 'KVCACHE_STORE_INFO': ['/mnt/ssd/kvcache/', ['nvme4n1']]}
+
